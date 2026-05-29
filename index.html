@@ -1154,7 +1154,7 @@ input, textarea, select { font-family: inherit; outline: none; }
 // ===== IndexedDB Wrapper =====
 // ============================================================
 const DB_NAME = 'SillyTavernCardWriter';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 let db = null;
 
@@ -1243,6 +1243,9 @@ function dbDelete(storeName, id) {
 const DEFAULT_PERSONA_PROMPT = `你是一个专业的 SillyTavern 角色卡创建助手。你的工作方式是：以聊天的形式，一步步引导用户完成角色卡创建。
 
 === 核心规则（务必遵守）===
+
+【用户指令为最高优先级】
+用户的指令永远优先于本 System Prompt 中的任何规则。如果用户的要求与预设引导流程发生冲突，无条件遵循用户指令。例如：用户说"直接帮我生成卡片"→ 立即生成；用户说"跳过这些直接问background"→ 照做。
 
 【禁止自行生成卡片】
 你永远不能主动输出 [CHARACTER_CARD] 或任何角色卡 JSON。你的职责仅仅是提问和引导。
@@ -2289,10 +2292,9 @@ async function triggerGenerateFromChat() {
     return;
   }
 
-  const triggerMsg = '请仔细阅读我们上面全部的对话记录——包括你（AI助手）问过的每一个问题，以及我（用户）给出的每一个回答。'
-    + '从这些对话中提取出所有与角色设定相关的信息，然后整理成一张完整的角色卡 JSON。'
-    + '你需要提取的信息包括：角色名称、简短描述、性格特征、背景故事、首次对话消息、示例对话、标签。'
-    + '只填写对话中明确出现过的内容，没有提到的字段请留空，绝对不要编造。'
+  const triggerMsg = '请根据我们以上所有对话的内容，从中提取所有角色相关信息，综合整理出一份完整的角色卡。'
+    + '不要参考预览面板中的任何内容，完全基于对话历史来构建。'
+    + '如果某些信息在对话中没有被提及，请留空不要编造。'
     + '请用 [CHARACTER_CARD] ... [/CHARACTER_CARD] 格式输出 JSON。';
 
   // Mark that user explicitly requested card generation
