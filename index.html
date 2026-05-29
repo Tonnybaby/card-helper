@@ -1841,6 +1841,9 @@ function clearPreview() {
 // ===== Conversation Management =====
 // ============================================================
 async function createConversation(editCardId = null) {
+  // Validate editCardId: must be a positive number
+  const validEditId = (typeof editCardId === 'number' && editCardId > 0) ? editCardId : null;
+
   const apiConfigId = document.getElementById('chatApiSelect').value;
   const personaId = document.getElementById('chatPersonaSelect').value;
 
@@ -1854,18 +1857,20 @@ async function createConversation(editCardId = null) {
   }
 
   let cardContext = '';
-  if (editCardId) {
-    const card = await dbGet('cards', Number(editCardId));
+  let cardName = '';
+  if (validEditId) {
+    const card = await dbGet('cards', validEditId);
     if (card) {
+      cardName = card.name || '未命名';
       cardContext = `\n\n【待修改的现有角色卡】\n名称: ${card.name}\n描述: ${card.description}\n性格: ${card.personality}\n背景: ${card.scenario}\n首次消息: ${card.first_mes}\n示例对话: ${card.mes_example}\n标签: ${Array.isArray(card.tags) ? card.tags.join(', ') : ''}\n备注: ${card.creator_notes}\n\n请帮助用户修改以上角色卡。`;
     }
   }
 
   const conv = {
-    title: editCardId ? '修改: ' + (await dbGet('cards', Number(editCardId))).name : '未完成卡',
+    title: validEditId ? '修改: ' + cardName : '未完成卡',
     personaId: Number(personaId),
     apiConfigId: Number(apiConfigId),
-    editCardId: editCardId || null,
+    editCardId: validEditId,
     messages: cardContext ? [{
       role: 'system',
       content: '【系统指令】用户想修改一张已有的角色卡，卡片当前信息如下。请和用户对话了解他们想改什么，然后逐步修改。' + cardContext,
@@ -1879,13 +1884,14 @@ async function createConversation(editCardId = null) {
   conv.id = Number(id);
   state.currentConvId = conv.id;
   state.currentConversation = conv;
-  state.editingCardId = editCardId || null;
+  state.editingCardId = validEditId;
   clearPreview();
+  updateSaveButtonText();
   renderConvList();
   renderMessages();
   document.getElementById('btnSend').disabled = false;
   document.getElementById('chatInput').focus();
-  if (editCardId) {
+  if (validEditId) {
     showToast('已加载卡片，开始和 AI 对话修改吧', 'success');
   } else {
     showToast('新对话已创建', 'success');
@@ -2745,7 +2751,7 @@ function extractCharaFromPNG(bytes) {
 // ============================================================
 // ===== Event Listeners =====
 // ============================================================
-document.getElementById('btnNewChat').addEventListener('click', createConversation);
+document.getElementById('btnNewChat').addEventListener('click', () => createConversation());
 document.getElementById('btnSend').addEventListener('click', sendMessage);
 document.getElementById('btnSaveCard').addEventListener('click', saveCard);
 document.getElementById('btnTriggerCard').addEventListener('click', triggerCardGeneration);
