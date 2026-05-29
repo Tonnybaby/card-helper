@@ -932,10 +932,7 @@ input, textarea, select { font-family: inherit; outline: none; }
           </div>
         </div>
         <div class="chat-input-area">
-          <div style="display:flex;flex-direction:column;gap:8px;flex:1;">
-            <button class="btn-generate-from-chat" id="btnGenerateFromChat" style="display:none;" onclick="triggerGenerateFromChat()">🔄 根据对话生成卡片</button>
-            <textarea id="chatInput" placeholder="输入消息，Enter 发送，Shift+Enter 换行..." rows="2" style="flex:1;"></textarea>
-          </div>
+          <textarea id="chatInput" placeholder="输入消息，Enter 发送，Shift+Enter 换行..." rows="2"></textarea>
           <button class="btn-send" id="btnSend" disabled>发送</button>
         </div>
       </div>
@@ -946,7 +943,8 @@ input, textarea, select { font-family: inherit; outline: none; }
           <span>📋 卡片预览</span>
         </div>
         <div class="preview-empty" id="previewEmpty">
-          AI 生成角色卡后<br>会在这里显示可编辑的预览
+          <p style="margin-bottom:12px;font-size:13px;color:var(--text-secondary);">点击下方按钮<br>让 AI 根据对话生成角色卡</p>
+          <button class="btn-generate-from-chat" id="btnGenerateFromChat" style="display:none;" onclick="triggerGenerateFromChat()">🔄 根据对话生成卡片</button>
         </div>
         <div class="preview-form hidden" id="previewForm">
           <label>角色名称</label>
@@ -2016,7 +2014,7 @@ async function renderConvList() {
         </div>
         <div class="conv-item-meta">
           <span>${formatTime(c.createdAt)}</span>
-          <span>${c.messages.length} 条消息</span>
+          <span>${c.messages.filter(m => !m.hidden).length} 条消息</span>
         </div>
         <div class="conv-item-actions">
           <button onclick="event.stopPropagation();deleteConversation(${c.id})">🗑️ 删除</button>
@@ -2050,17 +2048,21 @@ function renderMessages() {
   const container = document.getElementById('messagesContainer');
   const conv = state.currentConversation;
 
-  if (!conv || conv.messages.length === 0) {
+  const visibleMsgs = conv ? conv.messages.filter(m => !m.hidden) : [];
+  if (!conv || visibleMsgs.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
         <div class="icon">💬</div>
         <p>${conv ? '开始对话吧！AI 会引导你创建角色卡' : '选择或新建一个对话开始写卡<br>AI 会一步步引导你创建角色'}</p>
       </div>
     `;
+    document.getElementById('btnGenerateFromChat').style.display = (conv && conv.messages.length > 0) ? 'inline-block' : 'none';
     return;
   }
 
-  container.innerHTML = conv.messages.map(m => {
+  container.innerHTML = conv.messages
+    .filter(m => !m.hidden)  // Skip hidden trigger messages
+    .map(m => {
     const isUser = m.role === 'user';
     const cardData = parseCardFromMessage(m.content);
     let contentHtml = renderMarkdown(m.content);
@@ -2106,11 +2108,12 @@ function renderMarkdown(text) {
   return html;
 }
 
-function appendMessage(role, content) {
+function appendMessage(role, content, hidden = false) {
   if (!state.currentConversation) return;
   state.currentConversation.messages.push({
     role,
     content,
+    hidden: hidden || false,
     timestamp: Date.now()
   });
   state.currentConversation.updatedAt = Date.now();
@@ -2265,7 +2268,8 @@ async function saveCard() {
 async function triggerGenerateFromChat() {
   if (state.isGenerating) return;
   const conv = state.currentConversation;
-  if (!conv || conv.messages.length === 0) {
+  const visibleMsgs = conv ? conv.messages.filter(m => !m.hidden) : [];
+  if (!conv || visibleMsgs.length === 0) {
     showToast('当前对话没有消息，请先和 AI 聊天', 'error');
     return;
   }
@@ -2299,7 +2303,7 @@ async function triggerGenerateFromChat() {
 
   document.getElementById('btnSend').disabled = true;
   state.isGenerating = true;
-  appendMessage('user', triggerMsg);
+  appendMessage('user', triggerMsg, true); // hidden message — AI sees it, user doesn't
 
   const msgContainer = document.getElementById('messagesContainer');
   const typingEl = document.createElement('div');
