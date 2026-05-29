@@ -1110,6 +1110,7 @@ input, textarea, select { font-family: inherit; outline: none; }
     <div class="modal-actions">
       <button class="btn-cancel" onclick="hideCardEditModal()">取消</button>
       <button class="btn-submit" onclick="saveCardEdit()">保存修改</button>
+      <button class="btn-submit" onclick="saveAndAIChat()" style="background:#e8f4f8;color:#3a7cc3;border:1px solid #5b9bd5;margin-left:8px;">🤖 保存并AI帮改</button>
     </div>
   </div>
 </div>
@@ -2412,6 +2413,14 @@ async function saveCardEdit() {
   hideCardEditModal();
   renderCardsPage();
   showToast('角色卡已更新', 'success');
+}
+
+async function saveAndAIChat() {
+  const id = Number(document.getElementById('editCardId').value);
+  // Save first
+  await saveCardEdit();
+  // Then jump to AI chat
+  await startChatEdit(id);
 }
 
 // ============================================================
