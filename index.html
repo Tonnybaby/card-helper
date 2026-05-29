@@ -363,6 +363,19 @@ input, textarea, select { font-family: inherit; outline: none; }
 .btn-send:hover { background: var(--primary-dark); }
 .btn-send:disabled { background: #ccc; cursor: not-allowed; }
 
+.btn-generate-from-chat {
+  background: #fff3e0;
+  border: 1px dashed var(--warning);
+  color: #e67e22;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.btn-generate-from-chat:hover { background: var(--warning); color: #fff; border-style: solid; }
+
 /* Card Preview Panel */
 .card-preview {
   width: var(--preview-w);
@@ -919,7 +932,10 @@ input, textarea, select { font-family: inherit; outline: none; }
           </div>
         </div>
         <div class="chat-input-area">
-          <textarea id="chatInput" placeholder="输入消息，Enter 发送，Shift+Enter 换行..." rows="2"></textarea>
+          <div style="display:flex;flex-direction:column;gap:8px;flex:1;">
+            <button class="btn-generate-from-chat" id="btnGenerateFromChat" style="display:none;" onclick="triggerGenerateFromChat()">🔄 根据对话生成卡片</button>
+            <textarea id="chatInput" placeholder="输入消息，Enter 发送，Shift+Enter 换行..." rows="2" style="flex:1;"></textarea>
+          </div>
           <button class="btn-send" id="btnSend" disabled>发送</button>
         </div>
       </div>
@@ -928,7 +944,6 @@ input, textarea, select { font-family: inherit; outline: none; }
       <div class="card-preview" id="cardPreview">
         <div class="preview-header">
           <span>📋 卡片预览</span>
-          <button class="btn-trigger-card" id="btnTriggerCard" style="display:none">🔄 根据对话更新卡片</button>
         </div>
         <div class="preview-empty" id="previewEmpty">
           AI 生成角色卡后<br>会在这里显示可编辑的预览
@@ -1803,7 +1818,7 @@ function parseCardFromMessage(content) {
 function populatePreviewForm(cardData) {
   document.getElementById('previewEmpty').classList.add('hidden');
   document.getElementById('previewForm').classList.remove('hidden');
-  document.getElementById('btnTriggerCard').style.display = 'none';
+  document.getElementById('btnGenerateFromChat').style.display = 'none';
 
   document.getElementById('cardName').value = cardData.name || '';
   document.getElementById('cardDesc').value = cardData.description || '';
@@ -1833,7 +1848,7 @@ function getCardDataFromForm() {
 function clearPreview() {
   document.getElementById('previewEmpty').classList.remove('hidden');
   document.getElementById('previewForm').classList.add('hidden');
-  document.getElementById('btnTriggerCard').style.display = 'none';
+  document.getElementById('btnGenerateFromChat').style.display = 'none';
   state.currentCardData = null;
 }
 
@@ -1929,7 +1944,7 @@ async function loadConversation(id) {
   if (conv.personaId) document.getElementById('chatPersonaSelect').value = conv.personaId;
 
   // Always show the update card button when there are messages
-  document.getElementById('btnTriggerCard').style.display = conv.messages.length > 0 ? 'inline-block' : 'none';
+  document.getElementById('btnGenerateFromChat').style.display = conv.messages.length > 0 ? 'inline-block' : 'none';
 
   renderMessages();
   renderConvList();
@@ -2086,7 +2101,7 @@ function appendMessage(role, content) {
   state.currentConversation.updatedAt = Date.now();
   renderMessages();
   // Show trigger button after some messages
-  document.getElementById('btnTriggerCard').style.display = state.currentConversation.messages.length > 0 ? 'inline-block' : 'none';
+  document.getElementById('btnGenerateFromChat').style.display = state.currentConversation.messages.length > 0 ? 'inline-block' : 'none';
   // Update title if card was generated
   const cardData = parseCardFromMessage(content);
   if (cardData && cardData.name) {
@@ -2220,10 +2235,14 @@ async function saveCard() {
 }
 
 // Trigger card generation manually
-async function triggerCardGeneration() {
+// Generate card purely from conversation context (not from preview panel)
+async function triggerGenerateFromChat() {
   if (state.isGenerating) return;
   const conv = state.currentConversation;
-  if (!conv) return;
+  if (!conv || conv.messages.length === 0) {
+    showToast('当前对话没有消息，请先和 AI 聊天', 'error');
+    return;
+  }
 
   const apiConfigId = document.getElementById('chatApiSelect').value;
   const personaId = document.getElementById('chatPersonaSelect').value;
@@ -2232,14 +2251,10 @@ async function triggerCardGeneration() {
     return;
   }
 
-  // Build a context-aware trigger message
-  let triggerMsg = '请根据我们上面的所有对话内容，整理并生成/更新完整的角色卡 JSON。用 [CHARACTER_CARD] ... [/CHARACTER_CARD] 格式输出。';
-  const cardData = getCardDataFromForm();
-  if (cardData && cardData.name) {
-    triggerMsg = '请根据我们上面的所有对话内容，更新角色卡。当前卡片信息供参考：\n' +
-      JSON.stringify(cardData, null, 2) +
-      '\n\n请输出更新后的完整角色卡 JSON，用 [CHARACTER_CARD] ... [/CHARACTER_CARD] 格式。';
-  }
+  const triggerMsg = '请根据我们以上所有对话的内容，回顾你问过的问题和我的回答，从中提取所有角色相关信息，综合整理出一份完整的角色卡。'
+    + '不要参考预览面板中的任何内容，完全基于对话历史来构建。'
+    + '如果某些信息在对话中没有被提及，请留空不要编造。'
+    + '请用 [CHARACTER_CARD] ... [/CHARACTER_CARD] 格式输出 JSON。';
 
   document.getElementById('btnSend').disabled = true;
   state.isGenerating = true;
@@ -2784,7 +2799,7 @@ function extractCharaFromPNG(bytes) {
 document.getElementById('btnNewChat').addEventListener('click', () => createConversation());
 document.getElementById('btnSend').addEventListener('click', sendMessage);
 document.getElementById('btnSaveCard').addEventListener('click', saveCard);
-document.getElementById('btnTriggerCard').addEventListener('click', triggerCardGeneration);
+document.getElementById('btnGenerateFromChat').addEventListener('click', triggerGenerateFromChat);
 
 // Chat input: Enter to send, Shift+Enter for newline
 document.getElementById('chatInput').addEventListener('keydown', (e) => {
