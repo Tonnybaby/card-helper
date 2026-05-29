@@ -1,0 +1,2485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SillyTavern 角色卡写卡助手</title>
+<style>
+/* ===== CSS Variables & Reset ===== */
+:root {
+  --primary: #5b9bd5;
+  --primary-light: #e8f4f8;
+  --primary-dark: #3a7cc3;
+  --bg: #f5f7fa;
+  --bg-card: #ffffff;
+  --text: #2c3e50;
+  --text-secondary: #7f8c8d;
+  --border: #e0e6ed;
+  --danger: #e74c3c;
+  --danger-hover: #c0392b;
+  --success: #27ae60;
+  --warning: #f39c12;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 20px rgba(0,0,0,0.12);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --sidebar-w: 200px;
+  --conv-list-w: 260px;
+  --preview-w: 340px;
+  --toolbar-h: 56px;
+  --input-h: 80px;
+  --transition: 0.2s ease;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+}
+
+a { color: var(--primary); text-decoration: none; }
+button { cursor: pointer; border: none; outline: none; font-family: inherit; }
+input, textarea, select { font-family: inherit; outline: none; }
+
+/* ===== Sidebar ===== */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.sidebar-logo {
+  padding: 20px 16px 16px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-logo .icon { font-size: 22px; }
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 14px;
+  transition: all var(--transition);
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.nav-item:hover { background: var(--primary-light); color: var(--primary-dark); }
+.nav-item.active { background: var(--primary-light); color: var(--primary-dark); font-weight: 600; }
+.nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ===== Main Content ===== */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.page { display: none; flex: 1; overflow: hidden; }
+.page.active { display: flex; flex-direction: column; }
+
+/* ===== Chat Page Layout ===== */
+.chat-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Conversation List */
+.conv-list {
+  width: var(--conv-list-w);
+  border-right: 1px solid var(--border);
+  background: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.conv-list-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-new-chat {
+  background: var(--primary);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  transition: all var(--transition);
+}
+.btn-new-chat:hover { background: var(--primary-dark); }
+
+.conv-list-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.conv-item {
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+}
+.conv-item:hover { background: var(--primary-light); }
+.conv-item.active { background: var(--primary-light); border-color: var(--primary); }
+
+.conv-item-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conv-item-meta { font-size: 11px; color: var(--text-secondary); display: flex; justify-content: space-between; }
+.conv-item-actions { display: flex; gap: 4px; margin-top: 6px; }
+.conv-item-actions button {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  transition: all var(--transition);
+}
+.conv-item-actions button:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+/* Chat Area */
+.chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg);
+}
+
+/* Toolbar */
+.chat-toolbar {
+  height: var(--toolbar-h);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.chat-toolbar select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: #fff;
+  color: var(--text);
+  min-width: 140px;
+}
+
+.toolbar-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.toolbar-spacer { flex: 1; }
+
+.btn-settings-link {
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  transition: all var(--transition);
+}
+.btn-settings-link:hover { background: var(--primary-light); color: var(--primary-dark); }
+
+/* Messages */
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.message {
+  display: flex;
+  gap: 10px;
+  max-width: 85%;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.message.user { align-self: flex-end; flex-direction: row-reverse; }
+
+.message-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.message.ai .message-avatar { background: var(--primary-light); }
+.message.user .message-avatar { background: #e8f5e9; }
+
+.message-bubble {
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: break-word;
+  position: relative;
+}
+
+.message.ai .message-bubble {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-top-left-radius: 4px;
+}
+
+.message.user .message-bubble {
+  background: var(--primary);
+  color: #fff;
+  border-top-right-radius: 4px;
+}
+
+.message-bubble pre {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  font-size: 12px;
+  margin: 8px 0;
+}
+
+.message-bubble code {
+  font-family: "Fira Code", "Consolas", monospace;
+  font-size: 12px;
+}
+
+.message-bubble p { margin: 4px 0; }
+.message-bubble ul, .message-bubble ol { margin: 4px 0; padding-left: 20px; }
+
+.message-role {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+/* Chat Input */
+.chat-input-area {
+  height: var(--input-h);
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.chat-input-area textarea {
+  flex: 1;
+  height: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 14px;
+  resize: none;
+  transition: border var(--transition);
+}
+.chat-input-area textarea:focus { border-color: var(--primary); }
+
+.btn-send {
+  background: var(--primary);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.btn-send:hover { background: var(--primary-dark); }
+.btn-send:disabled { background: #ccc; cursor: not-allowed; }
+
+/* Card Preview Panel */
+.card-preview {
+  width: var(--preview-w);
+  background: var(--bg-card);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.preview-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: var(--bg-card);
+  z-index: 1;
+}
+
+.preview-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+  padding: 30px;
+  line-height: 1.6;
+}
+
+.preview-form {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preview-form label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.preview-form input, .preview-form textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  transition: border var(--transition);
+}
+.preview-form input:focus, .preview-form textarea:focus { border-color: var(--primary); }
+.preview-form textarea { min-height: 60px; resize: vertical; }
+
+.btn-save-card {
+  background: var(--success);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  width: 100%;
+  margin-top: 8px;
+  transition: all var(--transition);
+}
+.btn-save-card:hover { background: #219a52; }
+
+.btn-trigger-card {
+  background: var(--warning);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  transition: all var(--transition);
+}
+.btn-trigger-card:hover { background: #d68910; }
+
+/* ===== Cards Page ===== */
+.cards-page {
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.cards-search {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  align-items: center;
+}
+
+.cards-search input {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  max-width: 400px;
+}
+.cards-search input:focus { border-color: var(--primary); }
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.card-item {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  transition: all var(--transition);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+
+.card-item:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.card-item.pinned { border-color: var(--warning); border-width: 2px; }
+
+.card-item-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  overflow: hidden;
+}
+.card-item-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.card-item-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.card-item-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.card-tag {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-radius: 12px;
+}
+
+.card-item-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.card-item-actions button {
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: all var(--transition);
+}
+.card-item-actions button:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+.card-item-actions button.btn-danger:hover { background: var(--danger); border-color: var(--danger); }
+.card-item-actions button.btn-pin { color: var(--warning); }
+.card-item-actions button.btn-pin:hover { background: var(--warning); color: #fff; border-color: var(--warning); }
+
+.pin-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 16px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; line-height: 1.8; }
+
+/* ===== Settings Page ===== */
+.settings-page {
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.settings-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border);
+}
+
+.settings-tab {
+  padding: 10px 20px;
+  font-size: 14px;
+  background: transparent;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all var(--transition);
+}
+.settings-tab:hover { color: var(--primary-dark); }
+.settings-tab.active { color: var(--primary-dark); border-bottom-color: var(--primary-dark); font-weight: 600; }
+
+.settings-tab-content { display: none; }
+.settings-tab-content.active { display: block; }
+
+.config-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.config-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all var(--transition);
+}
+.config-item:hover { box-shadow: var(--shadow); }
+
+.config-info h4 { font-size: 15px; margin-bottom: 4px; }
+.config-info p { font-size: 12px; color: var(--text-secondary); }
+
+.config-actions { display: flex; gap: 8px; }
+.config-actions button {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  transition: all var(--transition);
+}
+.btn-edit { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+.btn-edit:hover { background: var(--primary); color: #fff; }
+.btn-delete { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+.btn-delete:hover { background: var(--danger); color: #fff; }
+
+.btn-add {
+  background: var(--primary);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  margin-top: 16px;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-add:hover { background: var(--primary-dark); }
+
+/* ===== Modal ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+.modal-overlay.hidden { display: none; }
+
+.modal {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  width: 90%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.modal h3 { font-size: 18px; margin-bottom: 20px; }
+
+.modal-field {
+  margin-bottom: 14px;
+}
+.modal-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.modal-field input, .modal-field textarea, .modal-field select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+.modal-field input:focus, .modal-field textarea:focus { border-color: var(--primary); }
+.modal-field textarea { min-height: 100px; resize: vertical; font-family: inherit; }
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.btn-cancel {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+.btn-cancel:hover { background: var(--bg); }
+
+.btn-submit {
+  background: var(--primary);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+.btn-submit:hover { background: var(--primary-dark); }
+.btn-submit.danger { background: var(--danger); }
+.btn-submit.danger:hover { background: var(--danger-hover); }
+
+/* ===== Toast ===== */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 13px;
+  box-shadow: var(--shadow-lg);
+  animation: slideIn 0.3s ease;
+  max-width: 360px;
+}
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+.toast.info { background: var(--primary); }
+
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ===== Confirm Dialog ===== */
+.confirm-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 150;
+}
+.confirm-overlay.hidden { display: none; }
+
+.confirm-box {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+  max-width: 400px;
+  text-align: center;
+}
+.confirm-box p { margin-bottom: 20px; font-size: 14px; line-height: 1.6; }
+.confirm-box .modal-actions { justify-content: center; }
+
+/* ===== Responsive ===== */
+@media (max-width: 1200px) {
+  .card-preview { width: 280px; }
+  :root { --conv-list-w: 220px; }
+}
+
+@media (max-width: 900px) {
+  :root { --sidebar-w: 56px; }
+  .sidebar-logo span { display: none; }
+  .nav-item span { display: none; }
+  .nav-item { justify-content: center; padding: 12px; }
+  .sidebar-logo { justify-content: center; }
+  .sidebar-footer { display: none; }
+}
+
+@media (max-width: 768px) {
+  .card-preview { display: none; }
+  .card-preview.mobile-visible {
+    display: flex;
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 100%;
+    z-index: 50;
+  }
+  .conv-list { width: 180px; }
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #aaa; }
+
+/* Fetch models button */
+.btn-fetch-models {
+  background: #f0f7fa;
+  border: 1px solid var(--primary);
+  color: var(--primary-dark);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+.btn-fetch-models:hover { background: var(--primary); color: #fff; }
+.btn-fetch-models:disabled { opacity: 0.5; cursor: not-allowed; background: #eee; border-color: #ccc; color: #999; }
+
+/* Loading spinner */
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 8px 0;
+}
+.typing-indicator span {
+  width: 8px; height: 8px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  animation: bounce 1.2s infinite;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-8px); }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <span class="icon">✨</span>
+    <span>写卡助手</span>
+  </div>
+  <div class="sidebar-nav">
+    <button class="nav-item active" data-page="chat">
+      <span class="icon">💬</span>
+      <span>写卡对话</span>
+    </button>
+    <button class="nav-item" data-page="cards">
+      <span class="icon">📚</span>
+      <span>卡片库</span>
+    </button>
+    <button class="nav-item" data-page="settings">
+      <span class="icon">⚙️</span>
+      <span>API / 人设</span>
+    </button>
+  </div>
+  <div class="sidebar-footer">
+    API Key 仅存储在本地浏览器<br>不会上传到任何服务器
+  </div>
+</nav>
+
+<!-- Main Content -->
+<div class="main" id="mainContent">
+
+  <!-- ===== Chat Page ===== -->
+  <div class="page active" id="page-chat">
+    <!-- Toolbar -->
+    <div class="chat-toolbar">
+      <span class="toolbar-label">API:</span>
+      <select id="chatApiSelect"></select>
+      <span class="toolbar-label">人设:</span>
+      <select id="chatPersonaSelect"></select>
+      <span class="toolbar-spacer"></span>
+      <button class="btn-settings-link" onclick="switchPage('settings')">⚙️ 管理 API / 人设</button>
+    </div>
+
+    <div class="chat-layout">
+      <!-- Conversation List -->
+      <div class="conv-list">
+        <div class="conv-list-header">
+          <span>📝 对话列表</span>
+          <button class="btn-new-chat" id="btnNewChat">+ 新建</button>
+        </div>
+        <div class="conv-list-items" id="convList"></div>
+      </div>
+
+      <!-- Chat Area -->
+      <div class="chat-area" id="chatArea">
+        <div class="messages-container" id="messagesContainer">
+          <div class="empty-state">
+            <div class="icon">💬</div>
+            <p>选择或新建一个对话开始写卡<br>AI 会一步步引导你创建角色</p>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <textarea id="chatInput" placeholder="输入消息，Enter 发送，Shift+Enter 换行..." rows="2"></textarea>
+          <button class="btn-send" id="btnSend" disabled>发送</button>
+        </div>
+      </div>
+
+      <!-- Card Preview -->
+      <div class="card-preview" id="cardPreview">
+        <div class="preview-header">
+          <span>📋 卡片预览</span>
+          <button class="btn-trigger-card" id="btnTriggerCard" style="display:none">🤖 让AI生成卡片</button>
+        </div>
+        <div class="preview-empty" id="previewEmpty">
+          AI 生成角色卡后<br>会在这里显示可编辑的预览
+        </div>
+        <div class="preview-form hidden" id="previewForm">
+          <label>角色名称</label>
+          <input type="text" id="cardName" placeholder="角色名称">
+          <label>简短描述</label>
+          <textarea id="cardDesc" placeholder="一两句话描述这个角色" rows="3"></textarea>
+          <label>性格特征</label>
+          <textarea id="cardPersonality" placeholder="角色的性格特点" rows="3"></textarea>
+          <label>背景故事 (Scenario)</label>
+          <textarea id="cardScenario" placeholder="角色的背景设定" rows="3"></textarea>
+          <label>首次对话消息 (First Message)</label>
+          <textarea id="cardFirstMes" placeholder="角色第一次说的话" rows="3"></textarea>
+          <label>示例对话 (Message Examples)</label>
+          <textarea id="cardMesExample" placeholder="角色对话示例" rows="4"></textarea>
+          <label>标签 (用逗号分隔)</label>
+          <input type="text" id="cardTags" placeholder="例如: 奇幻, 战士, 热血">
+          <label>创作者备注</label>
+          <textarea id="cardNotes" placeholder="其他备注信息" rows="2"></textarea>
+          <button class="btn-save-card" id="btnSaveCard">💾 保存到卡片库</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Cards Page ===== -->
+  <div class="page" id="page-cards">
+    <div class="cards-page">
+      <div class="cards-search">
+        <input type="text" id="cardSearch" placeholder="🔍 搜索角色名称或标签...">
+      </div>
+      <div class="card-grid" id="cardGrid"></div>
+      <div class="empty-state" id="cardsEmpty">
+        <div class="icon">📭</div>
+        <p>还没有保存的角色卡<br>去「写卡对话」页面创建第一张卡片吧！</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Settings Page ===== -->
+  <div class="page" id="page-settings">
+    <div class="settings-page">
+      <div class="settings-tabs">
+        <button class="settings-tab active" data-settingstab="api">API 管理</button>
+        <button class="settings-tab" data-settingstab="persona">AI 人设管理</button>
+      </div>
+
+      <!-- API Tab -->
+      <div class="settings-tab-content active" id="settings-api">
+        <div class="config-list" id="apiConfigList"></div>
+        <button class="btn-add" onclick="showApiModal()">+ 添加 API 配置</button>
+      </div>
+
+      <!-- Persona Tab -->
+      <div class="settings-tab-content" id="settings-persona">
+        <div class="config-list" id="personaList"></div>
+        <button class="btn-add" onclick="showPersonaModal()">+ 添加 AI 人设</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay hidden" id="apiModalOverlay">
+  <div class="modal">
+    <h3 id="apiModalTitle">添加 API 配置</h3>
+    <div class="modal-field">
+      <label>配置名称</label>
+      <input type="text" id="apiName" placeholder="例如: 我的 OpenAI">
+    </div>
+    <div class="modal-field">
+      <label>API 地址 (Endpoint)</label>
+      <input type="text" id="apiEndpoint" placeholder="例如: https://api.openai.com/v1">
+    </div>
+    <div class="modal-field">
+      <label>API Key (可选)</label>
+      <input type="password" id="apiKey" placeholder="sk-...">
+    </div>
+    <div class="modal-field">
+      <label>模型名称</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="apiModel" placeholder="例如: gpt-4o" style="flex:1;">
+        <button class="btn-fetch-models" id="btnFetchModels" onclick="fetchModels()">📡 拉取模型</button>
+      </div>
+      <select id="apiModelSelect" style="display:none;margin-top:8px;width:100%;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;" onchange="onModelSelect()">
+        <option value="">-- 选择模型 --</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>API 类型</label>
+      <select id="apiProvider">
+        <option value="openai">OpenAI 兼容</option>
+        <option value="anthropic">Anthropic (Claude)</option>
+      </select>
+    </div>
+    <input type="hidden" id="apiEditId">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="hideApiModal()">取消</button>
+      <button class="btn-submit" onclick="saveApiConfig()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="personaModalOverlay">
+  <div class="modal">
+    <h3 id="personaModalTitle">添加 AI 人设</h3>
+    <div class="modal-field">
+      <label>人设名称</label>
+      <input type="text" id="personaName" placeholder="例如: 日系温柔助手">
+    </div>
+    <div class="modal-field">
+      <label>简短描述</label>
+      <input type="text" id="personaDesc" placeholder="例如: 适合创建 anime 风格角色">
+    </div>
+    <div class="modal-field">
+      <label>System Prompt</label>
+      <textarea id="personaPrompt" rows="12" placeholder="输入 AI 写卡助手的 System Prompt..."></textarea>
+    </div>
+    <input type="hidden" id="personaEditId">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="hidePersonaModal()">取消</button>
+      <button class="btn-cancel" onclick="resetPersonaPrompt()">重置为默认模板</button>
+      <button class="btn-submit" onclick="savePersona()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-overlay hidden" id="confirmOverlay">
+  <div class="confirm-box">
+    <p id="confirmText"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="hideConfirm()">取消</button>
+      <button class="btn-submit danger" id="confirmBtn">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Card Edit Modal (for card library) -->
+<div class="modal-overlay hidden" id="cardEditModalOverlay">
+  <div class="modal">
+    <h3>编辑角色卡</h3>
+    <div class="modal-field">
+      <label>角色名称</label>
+      <input type="text" id="editCardName">
+    </div>
+    <div class="modal-field">
+      <label>简短描述</label>
+      <textarea id="editCardDesc" rows="3"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>性格特征</label>
+      <textarea id="editCardPersonality" rows="3"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>背景故事</label>
+      <textarea id="editCardScenario" rows="3"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>首次对话消息</label>
+      <textarea id="editCardFirstMes" rows="3"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>示例对话</label>
+      <textarea id="editCardMesExample" rows="4"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>标签 (逗号分隔)</label>
+      <input type="text" id="editCardTags">
+    </div>
+    <div class="modal-field">
+      <label>创作者备注</label>
+      <textarea id="editCardNotes" rows="2"></textarea>
+    </div>
+    <input type="hidden" id="editCardId">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="hideCardEditModal()">取消</button>
+      <button class="btn-submit" onclick="saveCardEdit()">保存修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ============================================================
+// ===== IndexedDB Wrapper =====
+// ============================================================
+const DB_NAME = 'SillyTavernCardWriter';
+const DB_VERSION = 1;
+
+let db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('apiConfigs')) {
+        db.createObjectStore('apiConfigs', { keyPath: 'id', autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains('aiPersonas')) {
+        db.createObjectStore('aiPersonas', { keyPath: 'id', autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains('conversations')) {
+        db.createObjectStore('conversations', { keyPath: 'id', autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains('cards')) {
+        db.createObjectStore('cards', { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    request.onsuccess = (e) => {
+      db = e.target.result;
+      resolve(db);
+    };
+    request.onerror = (e) => reject(e.target.error);
+  });
+}
+
+function dbAdd(storeName, item) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    const request = store.add(item);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function dbPut(storeName, item) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    const request = store.put(item);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function dbGetAll(storeName) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const store = tx.objectStore(storeName);
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function dbGet(storeName, id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const store = tx.objectStore(storeName);
+    const request = store.get(id);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function dbDelete(storeName, id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// ============================================================
+// ===== Default Data =====
+// ============================================================
+const DEFAULT_PERSONA_PROMPT = `你是一个专业的 SillyTavern 角色卡创建助手。你的任务是通过对话引导用户逐步完成角色卡的创建。
+
+引导原则：
+- 每次只问一个问题，不要一次性抛出太多问题让用户不知所措
+- 根据用户的回答灵活调整后续问题，而不是死板地按顺序问
+- 如果用户的回答不够详细，可以礼貌地追问细节
+- 语气友好、耐心，像一位懂行的朋友在帮忙
+
+你需要收集的信息（按优先级排列）：
+1. 角色名称（必问）
+2. 角色简短描述（必问，一两句话概括这个角色）
+3. 性格特征（建议问）
+4. 背景故事/scenario（建议问）
+5. 首次对话消息 first_mes（建议问）
+6. 示例对话 mes_example（可选）
+7. 标签/分类（可选）
+
+当你觉得信息足够完善时，请用以下格式输出最终角色卡：
+[CHARACTER_CARD]
+{
+  "name": "...",
+  "description": "...",
+  "personality": "...",
+  "scenario": "...",
+  "first_mes": "...",
+  "mes_example": "...",
+  "tags": [...],
+  "creator_notes": "..."
+}
+[/CHARACTER_CARD]
+
+注意：
+- 只输出用户已经提供信息的字段，未提供的字段留空字符串或空数组
+- 输出卡片后，告知用户可以在右侧面板预览和编辑
+- 不要编造用户没有提供的信息`;
+
+// ============================================================
+// ===== App State =====
+// ============================================================
+const state = {
+  currentPage: 'chat',
+  currentConvId: null,
+  currentConversation: null,
+  currentCardData: null,
+  isGenerating: false,
+  settingsTab: 'api'
+};
+
+// ============================================================
+// ===== Toast =====
+// ============================================================
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// ============================================================
+// ===== Confirm Dialog =====
+// ============================================================
+let confirmCallback = null;
+
+function showConfirm(text, cb) {
+  document.getElementById('confirmText').textContent = text;
+  document.getElementById('confirmOverlay').classList.remove('hidden');
+  confirmCallback = cb;
+}
+
+function hideConfirm() {
+  document.getElementById('confirmOverlay').classList.add('hidden');
+  confirmCallback = null;
+}
+
+document.getElementById('confirmBtn').addEventListener('click', () => {
+  if (confirmCallback) confirmCallback();
+  hideConfirm();
+});
+
+// ============================================================
+// ===== Page Navigation =====
+// ============================================================
+function switchPage(page) {
+  state.currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  const pageEl = document.getElementById(`page-${page}`);
+  if (pageEl) pageEl.classList.add('active');
+  const navEl = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (navEl) navEl.classList.add('active');
+
+  window.location.hash = page;
+
+  if (page === 'cards') renderCardsPage();
+  if (page === 'settings') renderSettingsPage();
+}
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => switchPage(item.dataset.page));
+});
+
+// Hash routing
+window.addEventListener('hashchange', () => {
+  const page = window.location.hash.replace('#', '') || 'chat';
+  switchPage(page);
+});
+
+// ============================================================
+// ===== Settings Tabs =====
+// ============================================================
+document.querySelectorAll('.settings-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const tabName = tab.dataset.settingstab;
+    state.settingsTab = tabName;
+    document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.settings-tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(`settings-${tabName}`).classList.add('active');
+  });
+});
+
+// ============================================================
+// ===== API Config Management =====
+// ============================================================
+function showApiModal(editId = null) {
+  document.getElementById('apiModalOverlay').classList.remove('hidden');
+  // Reset model select
+  const sel = document.getElementById('apiModelSelect');
+  sel.style.display = 'none';
+  sel.innerHTML = '<option value="">-- 选择模型 --</option>';
+
+  if (editId) {
+    document.getElementById('apiModalTitle').textContent = '编辑 API 配置';
+    document.getElementById('apiEditId').value = editId;
+    dbGet('apiConfigs', editId).then(config => {
+      if (config) {
+        document.getElementById('apiName').value = config.name || '';
+        document.getElementById('apiEndpoint').value = config.endpoint || '';
+        document.getElementById('apiKey').value = config.apiKey || '';
+        document.getElementById('apiModel').value = config.model || '';
+        document.getElementById('apiProvider').value = config.provider || 'openai';
+      }
+    });
+  } else {
+    document.getElementById('apiModalTitle').textContent = '添加 API 配置';
+    document.getElementById('apiEditId').value = '';
+    document.getElementById('apiName').value = '';
+    document.getElementById('apiEndpoint').value = '';
+    document.getElementById('apiKey').value = '';
+    document.getElementById('apiModel').value = '';
+    document.getElementById('apiProvider').value = 'openai';
+  }
+}
+
+function hideApiModal() {
+  document.getElementById('apiModalOverlay').classList.add('hidden');
+}
+
+function onModelSelect() {
+  const sel = document.getElementById('apiModelSelect');
+  const input = document.getElementById('apiModel');
+  if (sel.value) {
+    input.value = sel.value;
+  }
+}
+
+async function fetchModels() {
+  const endpoint = document.getElementById('apiEndpoint').value.trim().replace(/\/+$/, '');
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const provider = document.getElementById('apiProvider').value;
+
+  if (!endpoint) {
+    showToast('请先填写 API 地址', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btnFetchModels');
+  const sel = document.getElementById('apiModelSelect');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ 拉取中...';
+  sel.style.display = 'none';
+
+  try {
+    const headers = {};
+    if (apiKey) {
+      if (provider === 'anthropic') {
+        headers['x-api-key'] = apiKey;
+        headers['anthropic-version'] = '2023-06-01';
+      } else {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      }
+    }
+
+    const url = endpoint + '/models';
+    const response = await fetch(url, { method: 'GET', headers });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Parse various API response formats
+    let rawModels = [];
+    if (data.data && Array.isArray(data.data)) {
+      rawModels = data.data.map(m => m.id || m.name).filter(Boolean);
+    } else if (data.models && Array.isArray(data.models)) {
+      rawModels = data.models.map(m => m.name || m.id).filter(Boolean);
+    } else if (Array.isArray(data)) {
+      rawModels = data.map(m => m.id || m.name).filter(Boolean);
+    }
+
+    if (rawModels.length === 0) {
+      showToast('未拉取到模型，请手动输入', 'info');
+      return;
+    }
+
+    // --- Filter & sort ---
+    // Non-chat model keywords to exclude
+    const excludePatterns = [
+      'embed', 'moderat', 'dall-e', 'dall_e', 'whisper', 'tts',
+      'audio', 'speech', 'babbage', 'davinci', 'curie', 'ada',
+      'image', 'generate', 'upscale', 'vector', 'search', 'rerank',
+      'bge-', 'text-embedding', 'voyage', 'cohere/embed'
+    ];
+
+    let models = rawModels.filter(m => {
+      const lower = m.toLowerCase();
+      return !excludePatterns.some(p => lower.includes(p));
+    });
+
+    // Sort: common/good models first, then alphabetical
+    const priorityPrefixes = [
+      'gpt-4', 'gpt-4o', 'gpt-3.5', 'o1', 'o3', 'o4',
+      'claude', 'gemini', 'deepseek', 'qwen', 'llama',
+      'mistral', 'mixtral', 'yi-', 'glm', 'doubao'
+    ];
+
+    function getPriority(m) {
+      const lower = m.toLowerCase();
+      for (let i = 0; i < priorityPrefixes.length; i++) {
+        if (lower.includes(priorityPrefixes[i])) return i;
+      }
+      return priorityPrefixes.length;
+    }
+
+    models.sort((a, b) => {
+      const pa = getPriority(a);
+      const pb = getPriority(b);
+      if (pa !== pb) return pa - pb;
+      return a.toLowerCase().localeCompare(b.toLowerCase());
+    });
+
+    if (models.length === 0) {
+      showToast('未拉取到聊天模型，请手动输入', 'info');
+      return;
+    }
+
+    const filteredCount = rawModels.length - models.length;
+    sel.innerHTML = '<option value="">-- 选择模型 (' + models.length + '个聊天模型' + (filteredCount > 0 ? '，已过滤' + filteredCount + '个非聊天模型' : '') + ') --</option>'
+      + models.map(m => `<option value="${m}">${m}</option>`).join('');
+    sel.style.display = 'block';
+    showToast(`拉取 ${rawModels.length} 个模型，筛选出 ${models.length} 个聊天模型`, 'success');
+  } catch (err) {
+    showToast('拉取失败: ' + err.message, 'error');
+    console.error('Fetch models error:', err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
+}
+
+async function saveApiConfig() {
+  const id = document.getElementById('apiEditId').value;
+  const config = {
+    name: document.getElementById('apiName').value.trim(),
+    endpoint: document.getElementById('apiEndpoint').value.trim(),
+    apiKey: document.getElementById('apiKey').value.trim(),
+    model: document.getElementById('apiModel').value.trim(),
+    provider: document.getElementById('apiProvider').value,
+    createdAt: Date.now()
+  };
+
+  if (!config.name || !config.endpoint || !config.model) {
+    showToast('请填写名称、API 地址和模型名称', 'error');
+    return;
+  }
+
+  // Normalize endpoint
+  config.endpoint = config.endpoint.replace(/\/+$/, '');
+
+  try {
+    if (id) {
+      config.id = Number(id);
+      await dbPut('apiConfigs', config);
+      showToast('API 配置已更新', 'success');
+    } else {
+      await dbAdd('apiConfigs', config);
+      showToast('API 配置已添加', 'success');
+    }
+    hideApiModal();
+    await refreshApiSelects();
+    renderSettingsPage();
+  } catch (err) {
+    showToast('保存失败: ' + err.message, 'error');
+  }
+}
+
+async function deleteApiConfig(id) {
+  showConfirm('确定要删除这个 API 配置吗？此操作不可撤销。', async () => {
+    await dbDelete('apiConfigs', id);
+    showToast('API 配置已删除', 'success');
+    await refreshApiSelects();
+    renderSettingsPage();
+  });
+}
+
+async function refreshApiSelects() {
+  const configs = await dbGetAll('apiConfigs');
+  const selects = ['chatApiSelect'];
+  selects.forEach(selId => {
+    const sel = document.getElementById(selId);
+    if (!sel) return;
+    sel.innerHTML = configs.length === 0
+      ? '<option value="">-- 请先添加 API 配置 --</option>'
+      : configs.map(c => `<option value="${c.id}">${c.name} (${c.model})</option>`).join('');
+  });
+}
+
+// ============================================================
+// ===== Persona Management =====
+// ============================================================
+function showPersonaModal(editId = null) {
+  document.getElementById('personaModalOverlay').classList.remove('hidden');
+  if (editId) {
+    document.getElementById('personaModalTitle').textContent = '编辑 AI 人设';
+    document.getElementById('personaEditId').value = editId;
+    dbGet('aiPersonas', editId).then(p => {
+      if (p) {
+        document.getElementById('personaName').value = p.name || '';
+        document.getElementById('personaDesc').value = p.description || '';
+        document.getElementById('personaPrompt').value = p.systemPrompt || '';
+      }
+    });
+  } else {
+    document.getElementById('personaModalTitle').textContent = '添加 AI 人设';
+    document.getElementById('personaEditId').value = '';
+    document.getElementById('personaName').value = '';
+    document.getElementById('personaDesc').value = '';
+    document.getElementById('personaPrompt').value = '';
+  }
+}
+
+function hidePersonaModal() {
+  document.getElementById('personaModalOverlay').classList.add('hidden');
+}
+
+function resetPersonaPrompt() {
+  document.getElementById('personaPrompt').value = DEFAULT_PERSONA_PROMPT;
+}
+
+async function savePersona() {
+  const id = document.getElementById('personaEditId').value;
+  const persona = {
+    name: document.getElementById('personaName').value.trim(),
+    description: document.getElementById('personaDesc').value.trim(),
+    systemPrompt: document.getElementById('personaPrompt').value.trim(),
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+
+  if (!persona.name || !persona.systemPrompt) {
+    showToast('请填写人设名称和 System Prompt', 'error');
+    return;
+  }
+
+  try {
+    if (id) {
+      persona.id = Number(id);
+      await dbPut('aiPersonas', persona);
+      showToast('AI 人设已更新', 'success');
+    } else {
+      await dbAdd('aiPersonas', persona);
+      showToast('AI 人设已添加', 'success');
+    }
+    hidePersonaModal();
+    await refreshPersonaSelects();
+    renderSettingsPage();
+  } catch (err) {
+    showToast('保存失败: ' + err.message, 'error');
+  }
+}
+
+async function deletePersona(id) {
+  showConfirm('确定要删除这个 AI 人设吗？此操作不可撤销。', async () => {
+    await dbDelete('aiPersonas', id);
+    showToast('AI 人设已删除', 'success');
+    await refreshPersonaSelects();
+    renderSettingsPage();
+  });
+}
+
+async function refreshPersonaSelects() {
+  const personas = await dbGetAll('aiPersonas');
+  const sel = document.getElementById('chatPersonaSelect');
+  if (!sel) return;
+  sel.innerHTML = personas.length === 0
+    ? '<option value="">-- 请先添加 AI 人设 --</option>'
+    : personas.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+// ============================================================
+// ===== Settings Page Render =====
+// ============================================================
+async function renderSettingsPage() {
+  // API Configs
+  const apiConfigs = await dbGetAll('apiConfigs');
+  const apiList = document.getElementById('apiConfigList');
+  if (apiConfigs.length === 0) {
+    apiList.innerHTML = '<div class="empty-state"><p>还没有 API 配置<br>点击下方按钮添加</p></div>';
+  } else {
+    apiList.innerHTML = apiConfigs.map(c => `
+      <div class="config-item">
+        <div class="config-info">
+          <h4>${escHtml(c.name)} <span style="font-size:11px;color:var(--text-secondary)">[${c.provider}]</span></h4>
+          <p>${escHtml(c.endpoint)} | 模型: ${escHtml(c.model)}</p>
+        </div>
+        <div class="config-actions">
+          <button class="btn-edit" onclick="showApiModal(${c.id})">编辑</button>
+          <button class="btn-delete" onclick="deleteApiConfig(${c.id})">删除</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Personas
+  const personas = await dbGetAll('aiPersonas');
+  const personaList = document.getElementById('personaList');
+  if (personas.length === 0) {
+    personaList.innerHTML = '<div class="empty-state"><p>还没有 AI 人设<br>点击下方按钮添加</p></div>';
+  } else {
+    personaList.innerHTML = personas.map(p => `
+      <div class="config-item">
+        <div class="config-info">
+          <h4>${escHtml(p.name)}</h4>
+          <p>${escHtml(p.description || '无描述')}</p>
+        </div>
+        <div class="config-actions">
+          <button class="btn-edit" onclick="showPersonaModal(${p.id})">编辑</button>
+          <button class="btn-delete" onclick="deletePersona(${p.id})">删除</button>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// ============================================================
+// ===== Chat Engine =====
+// ============================================================
+async function callAI(apiConfigId, personaId, messages) {
+  const apiConfig = await dbGet('apiConfigs', Number(apiConfigId));
+  const persona = await dbGet('aiPersonas', Number(personaId));
+
+  if (!apiConfig) throw new Error('未找到 API 配置');
+  if (!persona) throw new Error('未找到 AI 人设');
+
+  const systemPrompt = persona.systemPrompt || DEFAULT_PERSONA_PROMPT;
+
+  const allMessages = [
+    { role: 'system', content: systemPrompt },
+    ...messages.map(m => ({ role: m.role, content: m.content }))
+  ];
+
+  if (apiConfig.provider === 'anthropic') {
+    return callAnthropic(apiConfig, allMessages);
+  } else {
+    return callOpenAI(apiConfig, allMessages);
+  }
+}
+
+async function callOpenAI(config, messages) {
+  const url = config.endpoint + '/chat/completions';
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+  if (config.apiKey) {
+    headers['Authorization'] = `Bearer ${config.apiKey}`;
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      model: config.model,
+      messages: messages,
+      temperature: 0.8,
+      max_tokens: 4096
+    })
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`API 错误 (${response.status}): ${errText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+async function callAnthropic(config, messages) {
+  const url = config.endpoint + '/messages';
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-api-key': config.apiKey,
+    'anthropic-version': '2023-06-01'
+  };
+
+  // Separate system message from others
+  const systemMsg = messages.find(m => m.role === 'system');
+  const chatMessages = messages.filter(m => m.role !== 'system').map(m => ({
+    role: m.role,
+    content: m.content
+  }));
+
+  const body = {
+    model: config.model,
+    max_tokens: 4096,
+    messages: chatMessages
+  };
+  if (systemMsg) {
+    body.system = systemMsg.content;
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Anthropic API 错误 (${response.status}): ${errText}`);
+  }
+
+  const data = await response.json();
+  return data.content[0].text;
+}
+
+// ============================================================
+// ===== Card Data Parsing =====
+// ============================================================
+function parseCardFromMessage(content) {
+  const match = content.match(/\[CHARACTER_CARD\]\s*([\s\S]*?)\s*\[\/CHARACTER_CARD\]/);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[1].trim());
+  } catch (e) {
+    // Try to extract JSON even if there's surrounding text
+    const jsonMatch = match[1].match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch (e2) {
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
+function populatePreviewForm(cardData) {
+  document.getElementById('previewEmpty').classList.add('hidden');
+  document.getElementById('previewForm').classList.remove('hidden');
+  document.getElementById('btnTriggerCard').style.display = 'none';
+
+  document.getElementById('cardName').value = cardData.name || '';
+  document.getElementById('cardDesc').value = cardData.description || '';
+  document.getElementById('cardPersonality').value = cardData.personality || '';
+  document.getElementById('cardScenario').value = cardData.scenario || '';
+  document.getElementById('cardFirstMes').value = cardData.first_mes || '';
+  document.getElementById('cardMesExample').value = cardData.mes_example || '';
+  document.getElementById('cardTags').value = Array.isArray(cardData.tags) ? cardData.tags.join(', ') : (cardData.tags || '');
+  document.getElementById('cardNotes').value = cardData.creator_notes || '';
+
+  state.currentCardData = cardData;
+}
+
+function getCardDataFromForm() {
+  return {
+    name: document.getElementById('cardName').value.trim(),
+    description: document.getElementById('cardDesc').value.trim(),
+    personality: document.getElementById('cardPersonality').value.trim(),
+    scenario: document.getElementById('cardScenario').value.trim(),
+    first_mes: document.getElementById('cardFirstMes').value.trim(),
+    mes_example: document.getElementById('cardMesExample').value.trim(),
+    tags: document.getElementById('cardTags').value.split(',').map(t => t.trim()).filter(Boolean),
+    creator_notes: document.getElementById('cardNotes').value.trim()
+  };
+}
+
+function clearPreview() {
+  document.getElementById('previewEmpty').classList.remove('hidden');
+  document.getElementById('previewForm').classList.add('hidden');
+  document.getElementById('btnTriggerCard').style.display = 'none';
+  state.currentCardData = null;
+}
+
+// ============================================================
+// ===== Conversation Management =====
+// ============================================================
+async function createConversation() {
+  const apiConfigId = document.getElementById('chatApiSelect').value;
+  const personaId = document.getElementById('chatPersonaSelect').value;
+
+  if (!apiConfigId) {
+    showToast('请先在设置页面添加 API 配置', 'error');
+    return;
+  }
+  if (!personaId) {
+    showToast('请先在设置页面添加 AI 人设', 'error');
+    return;
+  }
+
+  const conv = {
+    title: '未完成卡',
+    personaId: Number(personaId),
+    apiConfigId: Number(apiConfigId),
+    messages: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+
+  const id = await dbAdd('conversations', conv);
+  conv.id = Number(id);
+  state.currentConvId = conv.id;
+  state.currentConversation = conv;
+  clearPreview();
+  renderConvList();
+  renderMessages();
+  document.getElementById('btnSend').disabled = false;
+  document.getElementById('chatInput').focus();
+  showToast('新对话已创建', 'success');
+}
+
+async function loadConversation(id) {
+  const conv = await dbGet('conversations', Number(id));
+  if (!conv) return;
+  state.currentConvId = conv.id;
+  state.currentConversation = conv;
+  clearPreview();
+
+  // Update selects to match conversation's settings
+  if (conv.apiConfigId) document.getElementById('chatApiSelect').value = conv.apiConfigId;
+  if (conv.personaId) document.getElementById('chatPersonaSelect').value = conv.personaId;
+
+  // Show trigger card button if there are messages
+  document.getElementById('btnTriggerCard').style.display = conv.messages.length > 0 ? 'inline-block' : 'none';
+
+  renderMessages();
+  renderConvList();
+  document.getElementById('btnSend').disabled = false;
+}
+
+async function deleteConversation(id) {
+  showConfirm('确定要删除这条对话记录吗？此操作不可撤销。', async () => {
+    await dbDelete('conversations', id);
+    if (state.currentConvId === id) {
+      state.currentConvId = null;
+      state.currentConversation = null;
+      clearPreview();
+      renderMessages();
+      document.getElementById('btnSend').disabled = true;
+    }
+    renderConvList();
+    showToast('对话已删除', 'success');
+  });
+}
+
+async function renderConvList() {
+  const convs = await dbGetAll('conversations');
+  convs.sort((a, b) => b.updatedAt - a.updatedAt);
+
+  const container = document.getElementById('convList');
+  if (convs.length === 0) {
+    container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-secondary);font-size:13px;">暂无对话记录</div>';
+  } else {
+    container.innerHTML = convs.map(c => `
+      <div class="conv-item ${c.id === state.currentConvId ? 'active' : ''}" onclick="loadConversation(${c.id})">
+        <div class="conv-item-title">${escHtml(c.title)}</div>
+        <div class="conv-item-meta">
+          <span>${formatTime(c.createdAt)}</span>
+          <span>${c.messages.length} 条消息</span>
+        </div>
+        <div class="conv-item-actions">
+          <button onclick="event.stopPropagation();deleteConversation(${c.id})">🗑️ 删除</button>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+function formatTime(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 60000) return '刚刚';
+  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+  return `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ============================================================
+// ===== Message Rendering =====
+// ============================================================
+function renderMessages() {
+  const container = document.getElementById('messagesContainer');
+  const conv = state.currentConversation;
+
+  if (!conv || conv.messages.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">💬</div>
+        <p>${conv ? '开始对话吧！AI 会引导你创建角色卡' : '选择或新建一个对话开始写卡<br>AI 会一步步引导你创建角色'}</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = conv.messages.map(m => {
+    const isUser = m.role === 'user';
+    const cardData = parseCardFromMessage(m.content);
+    let contentHtml = renderMarkdown(m.content);
+
+    // Highlight card JSON
+    if (cardData) {
+      contentHtml = contentHtml.replace(
+        /\[CHARACTER_CARD\][\s\S]*\[\/CHARACTER_CARD\]/g,
+        '<div style="background:#e8f5e9;border:1px solid #a5d6a7;padding:10px;border-radius:6px;margin:8px 0;font-size:12px;">✅ 角色卡已生成！请在右侧面板预览和编辑</div>'
+      );
+    }
+
+    return `
+      <div class="message ${isUser ? 'user' : 'ai'}">
+        <div class="message-avatar">${isUser ? '👤' : '🤖'}</div>
+        <div>
+          ${!isUser ? `<div class="message-role">AI 助手</div>` : ''}
+          <div class="message-bubble">${contentHtml}</div>
+          ${m.timestamp ? `<div style="font-size:10px;color:var(--text-secondary);margin-top:4px;">${formatTime(m.timestamp)}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.scrollTop = container.scrollHeight;
+}
+
+function renderMarkdown(text) {
+  if (!text) return '';
+  let html = escHtml(text);
+
+  // Code blocks
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Bold
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Italic
+  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  // Line breaks
+  html = html.replace(/\n/g, '<br>');
+
+  return html;
+}
+
+function appendMessage(role, content) {
+  if (!state.currentConversation) return;
+  state.currentConversation.messages.push({
+    role,
+    content,
+    timestamp: Date.now()
+  });
+  state.currentConversation.updatedAt = Date.now();
+  renderMessages();
+  // Show trigger button after some messages
+  document.getElementById('btnTriggerCard').style.display = state.currentConversation.messages.length > 0 ? 'inline-block' : 'none';
+  // Update title if card was generated
+  const cardData = parseCardFromMessage(content);
+  if (cardData && cardData.name) {
+    state.currentConversation.title = cardData.name;
+    if (state.currentConversation.id) {
+      dbPut('conversations', state.currentConversation);
+    }
+    renderConvList();
+    populatePreviewForm(cardData);
+  }
+  // Save to DB
+  if (state.currentConversation.id) {
+    dbPut('conversations', state.currentConversation);
+  }
+}
+
+// ============================================================
+// ===== Send Message =====
+// ============================================================
+async function sendMessage() {
+  if (state.isGenerating) return;
+
+  const input = document.getElementById('chatInput');
+  const content = input.value.trim();
+  if (!content) return;
+
+  const conv = state.currentConversation;
+  if (!conv) {
+    showToast('请先新建对话', 'error');
+    return;
+  }
+
+  // Check API and Persona
+  const apiConfigId = document.getElementById('chatApiSelect').value;
+  const personaId = document.getElementById('chatPersonaSelect').value;
+  if (!apiConfigId || !personaId) {
+    showToast('请选择 API 配置和 AI 人设', 'error');
+    return;
+  }
+
+  input.value = '';
+  document.getElementById('btnSend').disabled = true;
+  state.isGenerating = true;
+
+  // Add user message
+  appendMessage('user', content);
+
+  // Show typing indicator
+  const msgContainer = document.getElementById('messagesContainer');
+  const typingEl = document.createElement('div');
+  typingEl.className = 'message ai';
+  typingEl.id = 'typingIndicator';
+  typingEl.innerHTML = `
+    <div class="message-avatar">🤖</div>
+    <div class="message-bubble">
+      <div class="typing-indicator">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  `;
+  msgContainer.appendChild(typingEl);
+  msgContainer.scrollTop = msgContainer.scrollHeight;
+
+  try {
+    const response = await callAI(apiConfigId, personaId, conv.messages);
+    // Remove typing indicator
+    const ti = document.getElementById('typingIndicator');
+    if (ti) ti.remove();
+
+    appendMessage('assistant', response);
+    showToast('AI 已回复', 'success');
+  } catch (err) {
+    const ti = document.getElementById('typingIndicator');
+    if (ti) ti.remove();
+    showToast('发送失败: ' + err.message, 'error');
+    console.error(err);
+  }
+
+  state.isGenerating = false;
+  document.getElementById('btnSend').disabled = false;
+  document.getElementById('chatInput').focus();
+}
+
+// ============================================================
+// ===== Save Card =====
+// ============================================================
+async function saveCard() {
+  const cardData = getCardDataFromForm();
+  if (!cardData.name) {
+    showToast('请至少填写角色名称', 'error');
+    return;
+  }
+
+  const card = {
+    ...cardData,
+    avatar: '',
+    isPinned: false,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+
+  try {
+    await dbAdd('cards', card);
+    showToast('角色卡已保存到卡片库！', 'success');
+    // Update conversation title if needed
+    if (state.currentConversation && state.currentConversation.title === '未完成卡') {
+      state.currentConversation.title = cardData.name;
+      await dbPut('conversations', state.currentConversation);
+      renderConvList();
+    }
+  } catch (err) {
+    showToast('保存失败: ' + err.message, 'error');
+  }
+}
+
+// Trigger card generation manually
+async function triggerCardGeneration() {
+  if (state.isGenerating) return;
+  const conv = state.currentConversation;
+  if (!conv) return;
+
+  const apiConfigId = document.getElementById('chatApiSelect').value;
+  const personaId = document.getElementById('chatPersonaSelect').value;
+
+  const triggerMsg = '请根据我们之前的对话内容，生成完整的角色卡 JSON。';
+
+  input.value = '';
+  document.getElementById('btnSend').disabled = true;
+  state.isGenerating = true;
+  appendMessage('user', triggerMsg);
+
+  const msgContainer = document.getElementById('messagesContainer');
+  const typingEl = document.createElement('div');
+  typingEl.className = 'message ai';
+  typingEl.id = 'typingIndicator';
+  typingEl.innerHTML = `
+    <div class="message-avatar">🤖</div>
+    <div class="message-bubble">
+      <div class="typing-indicator"><span></span><span></span><span></span></div>
+    </div>
+  `;
+  msgContainer.appendChild(typingEl);
+  msgContainer.scrollTop = msgContainer.scrollHeight;
+
+  try {
+    const response = await callAI(apiConfigId, personaId, conv.messages);
+    const ti = document.getElementById('typingIndicator');
+    if (ti) ti.remove();
+    appendMessage('assistant', response);
+  } catch (err) {
+    const ti = document.getElementById('typingIndicator');
+    if (ti) ti.remove();
+    showToast('生成失败: ' + err.message, 'error');
+  }
+
+  state.isGenerating = false;
+  document.getElementById('btnSend').disabled = false;
+}
+
+// ============================================================
+// ===== Cards Page =====
+// ============================================================
+async function renderCardsPage() {
+  const cards = await dbGetAll('cards');
+  cards.sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return b.createdAt - a.createdAt;
+  });
+
+  const searchTerm = document.getElementById('cardSearch')?.value?.toLowerCase() || '';
+  const filtered = cards.filter(c => {
+    if (!searchTerm) return true;
+    const nameMatch = (c.name || '').toLowerCase().includes(searchTerm);
+    const tagMatch = Array.isArray(c.tags) && c.tags.some(t => t.toLowerCase().includes(searchTerm));
+    return nameMatch || tagMatch;
+  });
+
+  const grid = document.getElementById('cardGrid');
+  const empty = document.getElementById('cardsEmpty');
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    grid.innerHTML = filtered.map(c => `
+      <div class="card-item ${c.isPinned ? 'pinned' : ''}">
+        ${c.isPinned ? '<span class="pin-badge">⭐</span>' : ''}
+        <div class="card-item-avatar">
+          ${c.avatar ? `<img src="${c.avatar}" alt="${escHtml(c.name)}">` : '🎭'}
+        </div>
+        <div class="card-item-name">${escHtml(c.name)}</div>
+        <div class="card-item-desc">${escHtml(c.description || '无描述')}</div>
+        ${c.tags && c.tags.length ? `<div class="card-item-tags">${c.tags.map(t => `<span class="card-tag">${escHtml(t)}</span>`).join('')}</div>` : ''}
+        <div class="card-item-actions">
+          <button class="btn-pin" onclick="togglePin(${c.id})">${c.isPinned ? '📌 取消置顶' : '⭐ 置顶'}</button>
+          <button onclick="editCardFromLibrary(${c.id})">✏️ 编辑</button>
+          <button onclick="exportCardJSON(${c.id})">📄 JSON</button>
+          <button onclick="exportCardPNG(${c.id})">🖼️ PNG</button>
+          <button class="btn-danger" onclick="deleteCard(${c.id})">🗑️ 删除</button>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+async function togglePin(id) {
+  const card = await dbGet('cards', id);
+  if (!card) return;
+  card.isPinned = !card.isPinned;
+  await dbPut('cards', card);
+  renderCardsPage();
+}
+
+async function deleteCard(id) {
+  showConfirm('确定要删除这张角色卡吗？此操作不可撤销。', async () => {
+    await dbDelete('cards', id);
+    showToast('角色卡已删除', 'success');
+    renderCardsPage();
+  });
+}
+
+// ============================================================
+// ===== Card Edit from Library =====
+// ============================================================
+function editCardFromLibrary(id) {
+  dbGet('cards', id).then(card => {
+    if (!card) return;
+    document.getElementById('editCardId').value = card.id;
+    document.getElementById('editCardName').value = card.name || '';
+    document.getElementById('editCardDesc').value = card.description || '';
+    document.getElementById('editCardPersonality').value = card.personality || '';
+    document.getElementById('editCardScenario').value = card.scenario || '';
+    document.getElementById('editCardFirstMes').value = card.first_mes || '';
+    document.getElementById('editCardMesExample').value = card.mes_example || '';
+    document.getElementById('editCardTags').value = Array.isArray(card.tags) ? card.tags.join(', ') : '';
+    document.getElementById('editCardNotes').value = card.creator_notes || '';
+    document.getElementById('cardEditModalOverlay').classList.remove('hidden');
+  });
+}
+
+function hideCardEditModal() {
+  document.getElementById('cardEditModalOverlay').classList.add('hidden');
+}
+
+async function saveCardEdit() {
+  const id = Number(document.getElementById('editCardId').value);
+  const card = await dbGet('cards', id);
+  if (!card) return;
+
+  card.name = document.getElementById('editCardName').value.trim();
+  card.description = document.getElementById('editCardDesc').value.trim();
+  card.personality = document.getElementById('editCardPersonality').value.trim();
+  card.scenario = document.getElementById('editCardScenario').value.trim();
+  card.first_mes = document.getElementById('editCardFirstMes').value.trim();
+  card.mes_example = document.getElementById('editCardMesExample').value.trim();
+  card.tags = document.getElementById('editCardTags').value.split(',').map(t => t.trim()).filter(Boolean);
+  card.creator_notes = document.getElementById('editCardNotes').value.trim();
+  card.updatedAt = Date.now();
+
+  await dbPut('cards', card);
+  hideCardEditModal();
+  renderCardsPage();
+  showToast('角色卡已更新', 'success');
+}
+
+// ============================================================
+// ===== Export Functions =====
+// ============================================================
+function buildCardV2JSON(card) {
+  return {
+    spec: 'chara_card_v2',
+    spec_version: '2.0',
+    data: {
+      name: card.name || '',
+      description: card.description || '',
+      personality: card.personality || '',
+      scenario: card.scenario || '',
+      first_mes: card.first_mes || '',
+      mes_example: card.mes_example || '',
+      creator_notes: card.creator_notes || '',
+      system_prompt: '',
+      post_history_instructions: '',
+      tags: Array.isArray(card.tags) ? card.tags : [],
+      creator: '',
+      character_version: '1.0',
+      alternate_greetings: [],
+      extensions: {}
+    }
+  };
+}
+
+async function exportCardJSON(id) {
+  const card = await dbGet('cards', id);
+  if (!card) return;
+  const json = buildCardV2JSON(card);
+  downloadFile(`${card.name || 'character'}.json`, JSON.stringify(json, null, 2), 'application/json');
+  showToast('JSON 文件已下载', 'success');
+}
+
+async function exportCardPNG(id) {
+  const card = await dbGet('cards', id);
+  if (!card) return;
+
+  const json = buildCardV2JSON(card);
+  const jsonStr = JSON.stringify(json);
+  // UTF-8 safe base64 encoding
+  const base64Data = utf8ToBase64(jsonStr);
+
+  // Create a simple PNG with embedded chara tEXt chunk
+  // Generate an avatar image via canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = 400;
+  canvas.height = 600;
+  const ctx = canvas.getContext('2d');
+
+  // Background gradient
+  const gradient = ctx.createLinearGradient(0, 0, 400, 600);
+  gradient.addColorStop(0, '#7ec8e3');
+  gradient.addColorStop(1, '#3a7cc3');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 400, 600);
+
+  // Draw character name
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 32px "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(card.name || 'Character', 200, 300);
+
+  ctx.font = '16px "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.fillText('SillyTavern Character Card', 200, 340);
+
+  // Get PNG data URL
+  const pngDataUrl = canvas.toDataURL('image/png');
+  const base64Image = pngDataUrl.split(',')[1];
+  const binaryStr = atob(base64Image);
+  const bytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) {
+    bytes[i] = binaryStr.charCodeAt(i);
+  }
+
+  // Inject tEXt chunk with chara data
+  const pngWithChara = injectTextChunk(bytes, 'chara', base64Data);
+  const blob = new Blob([pngWithChara], { type: 'image/png' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${card.name || 'character'}.png`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast('PNG 角色卡已下载，可直接导入 SillyTavern', 'success');
+}
+
+function injectTextChunk(pngBytes, keyword, value) {
+  // PNG signature: 8 bytes
+  // IHDR chunk
+  // ... other chunks
+  // We insert our tEXt chunk right after IHDR
+
+  const sigLen = 8;
+  // Find the end of IHDR (first chunk after signature)
+  let pos = sigLen;
+  // Read IHDR length
+  const ihdrLen = (pngBytes[pos] << 24) | (pngBytes[pos+1] << 16) | (pngBytes[pos+2] << 8) | pngBytes[pos+3];
+  const ihdrEnd = pos + 4 + 4 + ihdrLen + 4; // length(4) + type(4) + data + crc(4)
+
+  // Build tEXt chunk
+  const keywordBytes = new TextEncoder().encode(keyword);
+  const nullSep = new Uint8Array([0]);
+  const valueBytes = new TextEncoder().encode(value);
+  const chunkData = new Uint8Array(keywordBytes.length + 1 + valueBytes.length);
+  chunkData.set(keywordBytes, 0);
+  chunkData.set(nullSep, keywordBytes.length);
+  chunkData.set(valueBytes, keywordBytes.length + 1);
+
+  const typeBytes = new TextEncoder().encode('tEXt');
+  const len = chunkData.length;
+  const lenBytes = new Uint8Array(4);
+  lenBytes[0] = (len >> 24) & 0xFF;
+  lenBytes[1] = (len >> 16) & 0xFF;
+  lenBytes[2] = (len >> 8) & 0xFF;
+  lenBytes[3] = len & 0xFF;
+
+  // CRC of type + data
+  const crcData = new Uint8Array(4 + len);
+  crcData.set(typeBytes, 0);
+  crcData.set(chunkData, 4);
+  const crc = crc32(crcData);
+  const crcBytes = new Uint8Array(4);
+  crcBytes[0] = (crc >>> 24) & 0xFF;
+  crcBytes[1] = (crc >>> 16) & 0xFF;
+  crcBytes[2] = (crc >>> 8) & 0xFF;
+  crcBytes[3] = crc & 0xFF;
+
+  // Assemble
+  const result = new Uint8Array(ihdrEnd + 4 + 4 + len + 4 + (pngBytes.length - ihdrEnd));
+  result.set(pngBytes.subarray(0, ihdrEnd), 0);
+  result.set(lenBytes, ihdrEnd);
+  result.set(typeBytes, ihdrEnd + 4);
+  result.set(chunkData, ihdrEnd + 8);
+  result.set(crcBytes, ihdrEnd + 8 + len);
+  result.set(pngBytes.subarray(ihdrEnd), ihdrEnd + 8 + len + 4);
+
+  return result;
+}
+
+// CRC32 implementation
+function crc32(data) {
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < data.length; i++) {
+    crc ^= data[i];
+    for (let j = 0; j < 8; j++) {
+      if (crc & 1) {
+        crc = (crc >>> 1) ^ 0xEDB88320;
+      } else {
+        crc = crc >>> 1;
+      }
+    }
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+// UTF-8 safe base64 encoding (avoids deprecated unescape)
+function utf8ToBase64(str) {
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(str);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function downloadFile(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// ===== Event Listeners =====
+// ============================================================
+document.getElementById('btnNewChat').addEventListener('click', createConversation);
+document.getElementById('btnSend').addEventListener('click', sendMessage);
+document.getElementById('btnSaveCard').addEventListener('click', saveCard);
+document.getElementById('btnTriggerCard').addEventListener('click', triggerCardGeneration);
+
+// Chat input: Enter to send, Shift+Enter for newline
+document.getElementById('chatInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// Search input
+document.getElementById('cardSearch').addEventListener('input', renderCardsPage);
+
+// ============================================================
+// ===== Init =====
+// ============================================================
+async function init() {
+  await openDB();
+
+  // Ensure default persona exists
+  const personas = await dbGetAll('aiPersonas');
+  if (personas.length === 0) {
+    await dbAdd('aiPersonas', {
+      name: '通用角色卡助手',
+      description: '默认人设，适合大多数角色卡创建场景',
+      systemPrompt: DEFAULT_PERSONA_PROMPT,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    });
+  }
+
+  // Load initial page from hash
+  const hash = window.location.hash.replace('#', '') || 'chat';
+  switchPage(hash);
+
+  // Refresh selects
+  await refreshApiSelects();
+  await refreshPersonaSelects();
+
+  // Render conversation list
+  await renderConvList();
+}
+
+init().catch(err => {
+  console.error('Init error:', err);
+  showToast('初始化失败: ' + err.message, 'error');
+});
+</script>
+
+</body>
+</html>
