@@ -1912,8 +1912,6 @@ async function loadCardForEdit(cardId) {
 }
 
 async function loadConversation(id) {
-
-async function loadConversation(id) {
   const conv = await dbGet('conversations', Number(id));
   if (!conv) return;
   state.currentConvId = conv.id;
