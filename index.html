@@ -1303,6 +1303,7 @@ const state = {
   currentConversation: null,
   currentCardData: null,
   editingCardId: null,
+  cardRequested: false,   // true only when user clicked generate button
   isGenerating: false,
   settingsTab: 'api'
 };
@@ -2123,16 +2124,24 @@ function appendMessage(role, content) {
   renderMessages();
   // Show trigger button after some messages
   document.getElementById('btnGenerateFromChat').style.display = state.currentConversation.messages.length > 0 ? 'inline-block' : 'none';
-  // Update title if card was generated
+
+  // Only update preview if user explicitly requested card generation
   const cardData = parseCardFromMessage(content);
   if (cardData && cardData.name) {
+    // Update conversation title from card data
     state.currentConversation.title = cardData.name;
     if (state.currentConversation.id) {
       dbPut('conversations', state.currentConversation);
     }
     renderConvList();
-    populatePreviewForm(cardData);
+
+    // Only populate preview if user clicked the generate button
+    if (state.cardRequested) {
+      populatePreviewForm(cardData);
+      state.cardRequested = false;
+    }
   }
+
   // Save to DB
   if (state.currentConversation.id) {
     dbPut('conversations', state.currentConversation);
@@ -2144,6 +2153,9 @@ function appendMessage(role, content) {
 // ============================================================
 async function sendMessage() {
   if (state.isGenerating) return;
+
+  // Normal chat never triggers card preview
+  state.cardRequested = false;
 
   const input = document.getElementById('chatInput');
   const content = input.value.trim();
@@ -2276,6 +2288,9 @@ async function triggerGenerateFromChat() {
     + '不要参考预览面板中的任何内容，完全基于对话历史来构建。'
     + '如果某些信息在对话中没有被提及，请留空不要编造。'
     + '请用 [CHARACTER_CARD] ... [/CHARACTER_CARD] 格式输出 JSON。';
+
+  // Mark that user explicitly requested card generation
+  state.cardRequested = true;
 
   document.getElementById('btnSend').disabled = true;
   state.isGenerating = true;
