@@ -2347,7 +2347,6 @@ async function renderConvList() {
           ${c.editCardId ? '🔄 ' : ''}${escHtml(c.title)}<span class="conv-edit-icon" onclick="startRenameConv(${c.id}, event)" title="重命名">✏️</span>
         </div>
         <div class="conv-item-meta">
-          <span>${formatTime(c.createdAt)}</span>
           <span>${c.messages.filter(m => !m.hidden).length} 条消息</span>
         </div>
         <div class="conv-item-actions">
@@ -2439,7 +2438,6 @@ function renderMessages() {
               <button onclick="deleteMessage(${idx})" title="删除">🗑️</button>
               <button onclick="copyMessage(${idx})" title="复制">📋</button>
             </div>
-            ${m.timestamp ? `<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">${formatTime(m.timestamp)}</div>` : ''}
           `}
         </div>
       </div>
