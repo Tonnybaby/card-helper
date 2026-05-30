@@ -2335,6 +2335,16 @@ async function refreshPersonaSelects() {
   const personas = await dbGetAll('aiPersonas');
   const sel = document.getElementById('chatPersonaSelect');
   if (!sel) return;
+  // Sort: system personas in fixed order, then user personas
+  const systemOrder = ['ai写卡助手', '柚乃', '郭德纲'];
+  personas.sort((a, b) => {
+    const ai = systemOrder.indexOf(a.name);
+    const bi = systemOrder.indexOf(b.name);
+    if (ai >= 0 && bi >= 0) return ai - bi;
+    if (ai >= 0) return -1;
+    if (bi >= 0) return 1;
+    return 0;
+  });
   sel.innerHTML = personas.length === 0
     ? '<option value="">-- 请先添加 AI 人设 --</option>'
     : personas.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
@@ -2715,7 +2725,13 @@ async function loadConversation(id) {
 
   // Update selects to match conversation's settings
   if (conv.apiConfigId != null) document.getElementById('chatApiSelect').value = conv.apiConfigId;
-  if (conv.personaId != null) { document.getElementById('chatPersonaSelect').value = conv.personaId; }
+  if (conv.personaId != null) {
+    document.getElementById('chatPersonaSelect').value = conv.personaId;
+  } else {
+    // Legacy conversation without stored persona: save current selection
+    const selId = document.getElementById('chatPersonaSelect').value;
+    if (selId) { conv.personaId = Number(selId); await dbPut('conversations', conv); }
+  }
   await updatePersonaName();
 
   // Always show the update card button when there are messages
