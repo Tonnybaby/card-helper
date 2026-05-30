@@ -120,19 +120,32 @@ input, textarea, select { font-family: inherit; outline: none; }
   font-size: 11px;
   color: var(--text-secondary);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
-.global-topbar select {
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  font-size: 13px;
+
+/* ===== Chat Settings Bar ===== */
+.chat-settings-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
   background: var(--primary-soft);
-  color: var(--text);
-  min-width: 150px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
-.global-topbar select:focus { border-color: var(--primary); }
+.chat-settings-bar select {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 12px;
+  background: #fff;
+  color: var(--text);
+  min-width: 120px;
+}
+.chat-settings-bar .toolbar-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
 
 .body-layout {
   flex: 1;
@@ -1139,10 +1152,6 @@ input, textarea, select { font-family: inherit; outline: none; }
     <span class="topbar-title">🌸 写卡助手</span>
     <span class="topbar-subtitle">你的AI写卡助手</span>
   </span>
-  <span class="topbar-label">API</span>
-  <select id="chatApiSelect"></select>
-  <span class="topbar-label">人设</span>
-  <select id="chatPersonaSelect"></select>
 </div>
 
 <!-- Body: Sidebar + Main Content -->
@@ -1187,6 +1196,12 @@ input, textarea, select { font-family: inherit; outline: none; }
 
       <!-- Chat Area -->
       <div class="chat-area" id="chatArea">
+        <div class="chat-settings-bar">
+          <span class="toolbar-label">API</span>
+          <select id="chatApiSelect"></select>
+          <span class="toolbar-label">人设</span>
+          <select id="chatPersonaSelect"></select>
+        </div>
         <div class="messages-container" id="messagesContainer">
           <div class="empty-state">
             <div class="icon">💬</div>
