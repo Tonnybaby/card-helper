@@ -7,20 +7,22 @@
 <style>
 /* ===== CSS Variables & Reset ===== */
 :root {
-  --primary: #5b9bd5;
-  --primary-light: #e8f4f8;
-  --primary-dark: #3a7cc3;
-  --bg: #f5f7fa;
+  --primary: #e891b0;
+  --primary-light: #fdf0f5;
+  --primary-dark: #d47095;
+  --primary-soft: #fff5f8;
+  --bg: #faf7f9;
   --bg-card: #ffffff;
-  --text: #2c3e50;
-  --text-secondary: #7f8c8d;
-  --border: #e0e6ed;
+  --text: #4a3f45;
+  --text-secondary: #9b8e94;
+  --border: #f0e4ea;
   --danger: #e74c3c;
   --danger-hover: #c0392b;
-  --success: #27ae60;
-  --warning: #f39c12;
-  --shadow: 0 2px 8px rgba(0,0,0,0.08);
-  --shadow-lg: 0 4px 20px rgba(0,0,0,0.12);
+  --success: #7bc89c;
+  --warning: #f5a623;
+  --accent: #ff7b9c;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 20px rgba(0,0,0,0.10);
   --radius: 10px;
   --radius-sm: 6px;
   --sidebar-w: 200px;
@@ -105,6 +107,51 @@ input, textarea, select { font-family: inherit; outline: none; }
   line-height: 1.5;
 }
 
+/* ===== Global Top Bar ===== */
+.global-topbar {
+  height: 52px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.topbar-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin-right: 20px;
+  white-space: nowrap;
+}
+.topbar-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.global-topbar select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px;
+  background: var(--primary-soft);
+  color: var(--text);
+  min-width: 150px;
+}
+.global-topbar select:focus { border-color: var(--primary); }
+
+.right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
 /* ===== Main Content ===== */
 .main {
   flex: 1;
@@ -145,14 +192,16 @@ input, textarea, select { font-family: inherit; outline: none; }
 }
 
 .btn-new-chat {
-  background: var(--primary);
+  background: var(--accent);
   color: #fff;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
   transition: all var(--transition);
+  box-shadow: 0 2px 8px rgba(255,123,156,0.3);
 }
-.btn-new-chat:hover { background: var(--primary-dark); }
+.btn-new-chat:hover { background: var(--primary-dark); transform: translateY(-1px); }
 
 .conv-list-items {
   flex: 1;
@@ -193,36 +242,6 @@ input, textarea, select { font-family: inherit; outline: none; }
   min-width: 0;
   background: var(--bg);
 }
-
-/* Toolbar */
-.chat-toolbar {
-  height: var(--toolbar-h);
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.chat-toolbar select {
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  background: #fff;
-  color: var(--text);
-  min-width: 140px;
-}
-
-.toolbar-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.toolbar-spacer { flex: 1; }
 
 .btn-load-card {
   background: var(--primary-light);
@@ -278,8 +297,8 @@ input, textarea, select { font-family: inherit; outline: none; }
   font-size: 16px;
   flex-shrink: 0;
 }
-.message.ai .message-avatar { background: var(--primary-light); }
-.message.user .message-avatar { background: #e8f5e9; }
+.message.ai .message-avatar { background: #ffe0ec; }
+.message.user .message-avatar { background: #ffe4e1; }
 
 .message-bubble {
   padding: 12px 16px;
@@ -297,7 +316,7 @@ input, textarea, select { font-family: inherit; outline: none; }
 }
 
 .message.user .message-bubble {
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--accent), var(--primary));
   color: #fff;
   border-top-right-radius: 4px;
 }
@@ -364,17 +383,23 @@ input, textarea, select { font-family: inherit; outline: none; }
 .btn-send:disabled { background: #ccc; cursor: not-allowed; }
 
 .btn-generate-from-chat {
-  background: #fff3e0;
-  border: 1px dashed var(--warning);
-  color: #e67e22;
-  padding: 8px 14px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
+  background: linear-gradient(135deg, #ff7b9c, #ff6b8a);
+  color: #fff;
+  padding: 14px 24px;
+  border-radius: 24px;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
   transition: all var(--transition);
   white-space: nowrap;
+  border: none;
+  box-shadow: 0 4px 16px rgba(255,107,138,0.35);
+  letter-spacing: 0.5px;
 }
-.btn-generate-from-chat:hover { background: var(--warning); color: #fff; border-style: solid; }
+.btn-generate-from-chat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(255,107,138,0.5);
+}
 
 /* Card Preview Panel */
 .card-preview {
@@ -523,7 +548,7 @@ input, textarea, select { font-family: inherit; outline: none; }
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: var(--primary-light);
+  background: linear-gradient(135deg, #ffe0ec, #fdf0f5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -897,28 +922,32 @@ input, textarea, select { font-family: inherit; outline: none; }
   </div>
 </nav>
 
-<!-- Main Content -->
-<div class="main" id="mainContent">
+<!-- Right Panel: Top Bar + Main Content -->
+<div class="right-panel">
+  <!-- Global Top Bar -->
+  <div class="global-topbar" id="globalTopbar">
+    <span class="topbar-title">🌸 写卡助手</span>
+    <span class="topbar-label">API</span>
+    <select id="chatApiSelect"></select>
+    <span class="topbar-label">人设</span>
+    <select id="chatPersonaSelect"></select>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main" id="mainContent">
 
   <!-- ===== Chat Page ===== -->
   <div class="page active" id="page-chat">
-    <!-- Toolbar -->
-    <div class="chat-toolbar">
-      <span class="toolbar-label">API:</span>
-      <select id="chatApiSelect"></select>
-      <span class="toolbar-label">人设:</span>
-      <select id="chatPersonaSelect"></select>
-      <span class="toolbar-spacer"></span>
-      <button class="btn-load-card" onclick="showCardSelectModal()">🔄 修改已有卡片</button>
-      <button class="btn-settings-link" onclick="switchPage('settings')">⚙️ 管理 API / 人设</button>
-    </div>
 
     <div class="chat-layout">
       <!-- Conversation List -->
       <div class="conv-list">
         <div class="conv-list-header">
           <span>📝 对话列表</span>
-          <button class="btn-new-chat" id="btnNewChat">+ 新建</button>
+          <div style="display:flex;gap:6px;">
+            <button class="btn-load-card" onclick="showCardSelectModal()" style="font-size:11px;padding:5px 10px;">🔄 修改已有卡片</button>
+            <button class="btn-new-chat" id="btnNewChat">+ 新建</button>
+          </div>
         </div>
         <div class="conv-list-items" id="convList"></div>
       </div>
@@ -1007,6 +1036,7 @@ input, textarea, select { font-family: inherit; outline: none; }
     </div>
   </div>
 </div>
+</div><!-- /right-panel -->
 
 <!-- Modals -->
 <div class="modal-overlay hidden" id="apiModalOverlay">
@@ -1282,6 +1312,7 @@ const state = {
   currentCardData: null,
   editingCardId: null,
   cardRequested: false,   // true only when user clicked generate button
+  generatingForConvId: null, // lock: which conversation is AI generating for
   isGenerating: false,
   settingsTab: 'api'
 };
@@ -2102,6 +2133,11 @@ function renderMarkdown(text) {
 
 function appendMessage(role, content, hidden = false) {
   if (!state.currentConversation) return;
+  // Bug fix ⑤: guard against cross-conversation message leakage
+  if (state.generatingForConvId && state.currentConvId !== state.generatingForConvId && role === 'assistant') {
+    console.warn('Blocked message for wrong conversation');
+    return; // Don't append AI response to wrong conversation
+  }
   state.currentConversation.messages.push({
     role,
     content,
@@ -2124,8 +2160,11 @@ function appendMessage(role, content, hidden = false) {
     renderConvList();
 
     // Only populate preview if user clicked the generate button
+    // Bug fix ⑥: use requestAnimationFrame to ensure DOM has rendered
     if (state.cardRequested) {
-      populatePreviewForm(cardData);
+      requestAnimationFrame(() => {
+        populatePreviewForm(cardData);
+      });
       state.cardRequested = false;
     }
   }
@@ -2154,6 +2193,9 @@ async function sendMessage() {
     showToast('请先新建对话', 'error');
     return;
   }
+
+  // Bug fix ⑤: lock conversation to prevent cross-talk
+  state.generatingForConvId = conv.id;
 
   // Check API and Persona
   const apiConfigId = document.getElementById('chatApiSelect').value;
@@ -2202,6 +2244,7 @@ async function sendMessage() {
   }
 
   state.isGenerating = false;
+  state.generatingForConvId = null;
   document.getElementById('btnSend').disabled = false;
   document.getElementById('chatInput').focus();
 }
@@ -2292,6 +2335,8 @@ async function triggerGenerateFromChat() {
 
   // Mark that user explicitly requested card generation
   state.cardRequested = true;
+  // Bug fix ⑤: lock conversation
+  state.generatingForConvId = conv.id;
 
   document.getElementById('btnSend').disabled = true;
   state.isGenerating = true;
@@ -2322,6 +2367,7 @@ async function triggerGenerateFromChat() {
   }
 
   state.isGenerating = false;
+  state.generatingForConvId = null;
   document.getElementById('btnSend').disabled = false;
 }
 
