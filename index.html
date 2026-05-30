@@ -3109,7 +3109,7 @@ async function triggerGenerateFromChat() {
   let wbContext = '';
   if (worldBookEntries.length > 0) {
     wbContext = '\n\n【世界书参考】以下是用户已填写的世界书条目，请在生成角色卡时融入这些设定：\n'
-      + worldBookEntries.map((e, i) => `条目${i+1}：标题="${e.title}" 触发词="${e.keys}" 位置=${e.position} 深度=${e.depth}\n内容：${e.content}`).join('\n\n')
+      + worldBookEntries.map((e, i) => `条目${i+1}：标题="${e.title}" 触发词="${e.keys}" 触发策略=${e.constant?'始终生效':'关键词触发'} 位置=${e.position} 深度=${e.depth}\n内容：${e.content}`).join('\n\n')
       + '\n请将世界书内容整合到角色卡的 world_book 字段中。';
   }
 
@@ -3901,7 +3901,8 @@ function addWorldBookEntry(data = {}) {
     keys: data.keys || '',
     position: data.position || 'before_char',
     depth: data.depth || 0,
-    content: data.content || ''
+    content: data.content || '',
+    constant: data.constant !== undefined ? data.constant : false
   });
   renderWorldBookEntries();
 }
@@ -3927,6 +3928,12 @@ function renderWorldBookEntries() {
       <input type="text" placeholder="标题" value="${escHtml(e.title)}" onchange="worldBookEntries[${i}].title=this.value">
       <div class="world-book-entry-row">
         <input type="text" placeholder="触发词 (逗号分隔)" value="${escHtml(e.keys)}" onchange="worldBookEntries[${i}].keys=this.value">
+        <select onchange="worldBookEntries[${i}].constant=this.value==='true'" style="padding:6px;border:1px solid var(--border);border-radius:4px;font-size:12px;">
+          <option value="false" ${!e.constant?'selected':''}>关键词触发</option>
+          <option value="true" ${e.constant?'selected':''}>始终生效</option>
+        </select>
+      </div>
+      <div class="world-book-entry-row">
         <select onchange="worldBookEntries[${i}].position=this.value" style="padding:6px;border:1px solid var(--border);border-radius:4px;font-size:12px;">
           <option value="before_char" ${e.position==='before_char'?'selected':''}>角色前</option>
           <option value="after_char" ${e.position==='after_char'?'selected':''}>角色后</option>
