@@ -3010,6 +3010,13 @@ async function sendMessage() {
     return;
   }
 
+  // Bind current API + persona to this conversation
+  conv.apiConfigId = Number(apiConfigId);
+  conv.personaId = Number(personaId);
+  state.personaName = (await dbGet('aiPersonas', conv.personaId))?.name || 'AI 助手';
+  conv.personaName = state.personaName;
+  await dbPut('conversations', conv);
+
   input.value = '';
   document.getElementById('btnSend').disabled = true;
   document.getElementById('btnStopGenerate').style.display = 'inline-block';
@@ -3126,6 +3133,13 @@ async function triggerGenerateFromChat() {
     showToast('请先选择 API 和 AI 人设', 'error');
     return;
   }
+
+  // Bind current API + persona to this conversation
+  conv.apiConfigId = Number(apiConfigId);
+  conv.personaId = Number(personaId);
+  state.personaName = (await dbGet('aiPersonas', conv.personaId))?.name || 'AI 助手';
+  conv.personaName = state.personaName;
+  await dbPut('conversations', conv);
 
   // Include world book entries if present
   let wbContext = '';
