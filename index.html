@@ -88,6 +88,30 @@ input, textarea, select { font-family: inherit; outline: none; }
 .nav-item.active { background: var(--primary-light); color: var(--primary-dark); font-weight: 600; }
 .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
 
+.sidebar-disclaimer {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  opacity: 0.7;
+  overflow-y: auto;
+  max-height: 200px;
+}
+.sidebar-disclaimer-title {
+  font-weight: 600;
+  font-size: 11px;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+}
+.sidebar-disclaimer ol {
+  padding-left: 14px;
+  margin: 0;
+}
+.sidebar-disclaimer li {
+  margin-bottom: 3px;
+}
+
 /* ===== Global Top Bar ===== */
 .global-topbar {
   height: 52px;
@@ -1199,6 +1223,15 @@ input, textarea, select { font-family: inherit; outline: none; }
         <span class="icon">⚙️</span>
         <span>API / 人设</span>
       </button>
+    </div>
+    <div class="sidebar-disclaimer">
+      <div class="sidebar-disclaimer-title">⚠️ 免责声明</div>
+      <ol>
+        <li>本站免费自用，若你付费使用则被骗了。</li>
+        <li>贩子4000+。</li>
+        <li>API Keys 及一切信息仅存于本地浏览器，任何人（包括作者）无法获取。</li>
+        <li>本站免费分享，使用后个人信息泄露与作者无关。</li>
+      </ol>
     </div>
   </nav>
 
