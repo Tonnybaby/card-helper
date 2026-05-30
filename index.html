@@ -875,23 +875,158 @@ input, textarea, select { font-family: inherit; outline: none; }
 
 @media (max-width: 900px) {
   :root { --sidebar-w: 56px; }
-  .sidebar-logo span { display: none; }
   .nav-item span { display: none; }
   .nav-item { justify-content: center; padding: 12px; }
-  .sidebar-logo { justify-content: center; }
-  .sidebar-footer { display: none; }
+  .sidebar-disclaimer { display: none; }
 }
 
+/* === Mobile (max 768px) === */
 @media (max-width: 768px) {
-  .card-preview { display: none; }
-  .card-preview.mobile-visible {
-    display: flex;
-    position: fixed;
-    top: 0; right: 0; bottom: 0;
-    width: 100%;
-    z-index: 50;
+  body {
+    overflow-x: hidden;
+    flex-direction: column;
   }
-  .conv-list { width: 180px; }
+
+  /* Sidebar → top tab bar */
+  .sidebar {
+    width: 100% !important;
+    flex-shrink: 0;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .sidebar-nav {
+    flex-direction: row;
+    gap: 0;
+    padding: 4px 8px;
+    flex: 1;
+    border-top: none;
+  }
+  .nav-item {
+    padding: 8px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+    border-radius: 16px;
+    flex-shrink: 0;
+  }
+  .nav-item .icon { font-size: 14px; width: auto; }
+  .nav-item span { display: inline; }
+  .sidebar-disclaimer { display: none; }
+
+  /* Global topbar */
+  .global-topbar {
+    padding: 0 12px;
+    height: 44px;
+    gap: 8px;
+  }
+  .topbar-title { font-size: 16px; }
+  .topbar-subtitle { display: none; }
+  .topbar-author { font-size: 9px; }
+
+  /* Body layout → single column */
+  .body-layout {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  /* Chat layout → stacked */
+  .chat-layout {
+    flex-direction: column;
+  }
+
+  /* Conv list → collapsible strip */
+  .conv-list {
+    width: 100% !important;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    max-height: 120px;
+    flex-shrink: 0;
+  }
+  .conv-list-header { padding: 8px 12px; }
+  .conv-list-items { display: flex; flex-direction: row; gap: 6px; padding: 6px 8px; overflow-x: auto; }
+  .conv-item { min-width: 130px; flex-shrink: 0; white-space: nowrap; padding: 8px 10px; }
+  .conv-item-title { font-size: 12px; }
+  .conv-item-meta { font-size: 10px; }
+  .conv-item-actions { display: none; }
+
+  /* Divider toggles hidden */
+  .divider-left, .divider-right { display: none; }
+
+  /* Chat area */
+  .chat-area {
+    flex: 1;
+    min-height: 60vh;
+  }
+  .messages-container { padding: 12px; gap: 10px; }
+  .message { max-width: 92%; }
+  .message-bubble { font-size: 13px; padding: 10px 14px; }
+
+  /* Chat input bar fixed at bottom */
+  .chat-input-area {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    padding: 8px 10px;
+    gap: 8px;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+  }
+  .chat-input-area textarea {
+    flex: 1;
+    font-size: 14px;
+    padding: 10px 12px;
+    min-height: 44px;
+    max-height: 120px;
+  }
+  .btn-send {
+    width: 72px;
+    flex-shrink: 0;
+    padding: 10px 0;
+    font-size: 14px;
+  }
+  .btn-stop-generate { font-size: 12px; padding: 8px 12px; }
+
+  /* Add bottom padding so messages don't hide behind input */
+  .messages-container { padding-bottom: 90px; }
+
+  /* Card preview → below chat, full width */
+  .card-preview {
+    width: 100% !important;
+    border-left: none;
+    border-top: 2px solid var(--primary-light);
+    max-height: 60vh;
+    margin-bottom: 80px;
+  }
+  .preview-header { padding: 10px 16px; }
+  .preview-form-fields { padding: 0 16px; gap: 12px; }
+  .preview-form-actions { padding: 12px 16px; }
+  .preview-form input, .preview-form textarea { font-size: 14px; padding: 10px 12px; }
+
+  /* Modals */
+  .modal { width: 90vw; max-width: none; padding: 20px; }
+  .modal h3 { font-size: 16px; }
+  .modal-field input, .modal-field textarea, .modal-field select { font-size: 14px; }
+
+  /* Cards page */
+  .cards-page { padding: 12px; }
+  .card-grid { grid-template-columns: 1fr; }
+
+  /* Settings */
+  .settings-page { padding: 12px; }
+  .config-item { flex-direction: column; gap: 10px; }
+  .config-actions { align-self: flex-end; }
+
+  /* Chat settings bar */
+  .chat-settings-bar { padding: 4px 8px; gap: 4px; }
+  .chat-settings-bar select { font-size: 11px; min-width: 100px; padding: 4px 6px; }
+}
+
+/* === Tablet tweaks (768-1024) === */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .card-preview { width: 260px; }
+  :root { --conv-list-w: 200px; }
 }
 
 /* ===== Scrollbar ===== */
