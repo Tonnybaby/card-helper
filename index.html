@@ -59,25 +59,13 @@ input, textarea, select { font-family: inherit; outline: none; }
   z-index: 10;
 }
 
-.sidebar-logo {
-  padding: 20px 16px 16px;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--primary-dark);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.sidebar-logo .icon { font-size: 22px; }
-
 .sidebar-nav {
   flex: 1;
   padding: 12px 8px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  border-top: 1px solid var(--border);
 }
 
 .nav-item {
@@ -97,15 +85,6 @@ input, textarea, select { font-family: inherit; outline: none; }
 .nav-item:hover { background: var(--primary-light); color: var(--primary-dark); }
 .nav-item.active { background: var(--primary-light); color: var(--primary-dark); font-weight: 600; }
 .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
-
-.sidebar-footer {
-  padding: 12px;
-  border-top: 1px solid var(--border);
-  font-size: 11px;
-  color: var(--text-secondary);
-  text-align: center;
-  line-height: 1.5;
-}
 
 /* ===== Global Top Bar ===== */
 .global-topbar {
@@ -909,9 +888,6 @@ input, textarea, select { font-family: inherit; outline: none; }
 
 <!-- Sidebar -->
 <nav class="sidebar">
-  <div class="sidebar-logo">
-    <span class="icon">✨</span>
-  </div>
   <div class="sidebar-nav">
     <button class="nav-item active" data-page="chat">
       <span class="icon">💬</span>
@@ -925,9 +901,6 @@ input, textarea, select { font-family: inherit; outline: none; }
       <span class="icon">⚙️</span>
       <span>API / 人设</span>
     </button>
-  </div>
-  <div class="sidebar-footer">
-    API Key 仅存储在本地浏览器<br>不会上传到任何服务器
   </div>
 </nav>
 
@@ -956,10 +929,7 @@ input, textarea, select { font-family: inherit; outline: none; }
       <div class="conv-list">
         <div class="conv-list-header">
           <span>📝 对话列表</span>
-          <div style="display:flex;gap:6px;">
-            <button class="btn-load-card" onclick="showCardSelectModal()" style="font-size:11px;padding:5px 10px;">🔄 修改已有卡片</button>
-            <button class="btn-new-chat" id="btnNewChat">+ 新建</button>
-          </div>
+          <button class="btn-new-chat" id="btnNewChat">+ 新建</button>
         </div>
         <div class="conv-list-items" id="convList"></div>
       </div>
