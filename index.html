@@ -2680,9 +2680,14 @@ async function createConversation(editCardId = null) {
     }
   }
 
+  // Resolve persona name synchronously for storage
+  let personaName = 'AI 助手';
+  try { const p = await dbGet('aiPersonas', Number(personaId)); personaName = p ? p.name : 'AI 助手'; } catch(e) {}
+
   const conv = {
     title: validEditId ? '修改: ' + cardName : '未完成卡',
     personaId: Number(personaId),
+    personaName: personaName,
     apiConfigId: Number(apiConfigId),
     editCardId: validEditId,
     messages: cardContext ? [{
@@ -2741,19 +2746,21 @@ async function loadConversation(id) {
   // Restore API select
   if (conv.apiConfigId != null) document.getElementById('chatApiSelect').value = conv.apiConfigId;
 
-  // Restore persona: use direct DB lookup (not select.value) for reliability
-  if (conv.personaId != null) {
+  // Restore persona: use stored personaName directly (no async DB lookup needed)
+  if (conv.personaName) {
+    state.personaName = conv.personaName;
+    if (conv.personaId != null) document.getElementById('chatPersonaSelect').value = conv.personaId;
+  } else if (conv.personaId != null) {
+    // Legacy conversation: backfill personaName
     document.getElementById('chatPersonaSelect').value = conv.personaId;
-    // Direct lookup from DB — bypasses select timing issues
     try {
       const persona = await dbGet('aiPersonas', conv.personaId);
       state.personaName = persona ? persona.name : 'AI 助手';
+      conv.personaName = state.personaName;
+      await dbPut('conversations', conv);
     } catch (e) { state.personaName = 'AI 助手'; }
   } else {
-    // Legacy conversation: save current selection
-    const selId = document.getElementById('chatPersonaSelect').value;
-    if (selId) { conv.personaId = Number(selId); await dbPut('conversations', conv); }
-    await updatePersonaName();
+    state.personaName = 'AI 助手';
   }
 
   // Always show the update card button when there are messages
