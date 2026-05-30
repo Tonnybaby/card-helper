@@ -385,7 +385,7 @@ input, textarea, select { font-family: inherit; outline: none; }
 .btn-send:disabled { background: #ccc; cursor: not-allowed; }
 
 .btn-generate-from-chat {
-  background: linear-gradient(135deg, #ff7b9c, #ff6b8a);
+  background: linear-gradient(135deg, #ff6b35, #e0551f);
   color: #fff;
   padding: 14px 24px;
   border-radius: 24px;
@@ -395,12 +395,14 @@ input, textarea, select { font-family: inherit; outline: none; }
   transition: all var(--transition);
   white-space: nowrap;
   border: none;
-  box-shadow: 0 4px 16px rgba(255,107,138,0.35);
+  box-shadow: 0 4px 16px rgba(224,85,31,0.35);
   letter-spacing: 0.5px;
+  width: 100%;
 }
 .btn-generate-from-chat:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(255,107,138,0.5);
+  box-shadow: 0 6px 24px rgba(224,85,31,0.5);
+  background: linear-gradient(135deg, #ff7b4d, #e8602e);
 }
 
 /* Card Preview Panel */
@@ -411,7 +413,7 @@ input, textarea, select { font-family: inherit; outline: none; }
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .preview-header {
@@ -441,10 +443,26 @@ input, textarea, select { font-family: inherit; outline: none; }
 }
 
 .preview-form {
-  padding: 16px;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  overflow: hidden;
   gap: 12px;
+}
+.preview-form-fields {
+  overflow-y: auto;
+  flex: 1;
+  padding-bottom: 8px;
+}
+.preview-form-actions {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-card);
+  padding: 12px 0 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .preview-form label {
@@ -467,16 +485,17 @@ input, textarea, select { font-family: inherit; outline: none; }
 .preview-form textarea { min-height: 60px; resize: vertical; }
 
 .btn-save-card {
-  background: var(--success);
+  background: linear-gradient(135deg, var(--accent), var(--primary));
   color: #fff;
-  padding: 10px 16px;
-  border-radius: var(--radius-sm);
+  padding: 12px 20px;
+  border-radius: 24px;
   font-size: 14px;
+  font-weight: 600;
   width: 100%;
-  margin-top: 8px;
   transition: all var(--transition);
+  box-shadow: 0 2px 8px rgba(232,145,176,0.3);
 }
-.btn-save-card:hover { background: #219a52; }
+.btn-save-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(232,145,176,0.4); }
 
 .btn-trigger-card {
   background: var(--warning);
@@ -1229,10 +1248,10 @@ input, textarea, select { font-family: inherit; outline: none; }
           <span>📋 卡片预览</span>
         </div>
         <div class="preview-empty" id="previewEmpty">
-          <p style="margin-bottom:12px;font-size:13px;color:var(--text-secondary);">点击下方按钮<br>让 AI 根据对话生成角色卡</p>
-          <button class="btn-generate-from-chat" id="btnGenerateFromChat" style="display:none;" onclick="triggerGenerateFromChat()">🔄 根据对话生成卡片</button>
+          <p>AI 生成角色卡后<br>会在这里显示可编辑预览</p>
         </div>
         <div class="preview-form hidden" id="previewForm">
+          <div class="preview-form-fields">
           <label>角色名称</label>
           <input type="text" id="cardName" placeholder="角色名称">
           <label>简短描述</label>
@@ -1257,7 +1276,11 @@ input, textarea, select { font-family: inherit; outline: none; }
             </label>
             <div id="worldBookEntries"></div>
           </div>
+          </div>
+          <div class="preview-form-actions">
+          <button class="btn-generate-from-chat" id="btnGenerateFromChat" style="display:none;" onclick="triggerGenerateFromChat()">🔄 根据对话生成卡片</button>
           <button class="btn-save-card" id="btnSaveCard">💾 保存到卡片库</button>
+          </div>
         </div>
       </div>
     </div>
