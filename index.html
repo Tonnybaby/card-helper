@@ -960,11 +960,10 @@ input, textarea, select { font-family: inherit; outline: none; }
 
 /* ===== Message Actions ===== */
 .message-actions {
-  display: none;
+  display: flex;
   gap: 4px;
   margin-top: 4px;
 }
-.message:hover .message-actions { display: flex; }
 .message-actions button {
   font-size: 10px;
   padding: 2px 8px;
@@ -2397,7 +2396,7 @@ function renderMessages() {
           ${isEditing ? `
             <textarea class="message-edit-input" id="editMsg_${idx}" rows="4">${escHtml(m.content)}</textarea>
             <div class="message-edit-actions">
-              <button class="btn-save-edit" onclick="saveMessageEdit(${idx})">✓ 确认并重问AI</button>
+              <button class="btn-save-edit" onclick="saveMessageEdit(${idx})">✓ ${isUser ? '确认并重问AI' : '保存修改'}</button>
               <button class="btn-cancel-edit" onclick="cancelMessageEdit()">取消</button>
             </div>
           ` : `
@@ -3281,19 +3280,26 @@ async function saveMessageEdit(idx) {
   const newContent = ta.value.trim();
   if (!newContent) { showToast('消息不能为空', 'error'); return; }
 
+  const isUserMessage = conv.messages[idx].role === 'user';
+
   // Update the message content
   conv.messages[idx].content = newContent;
-  // Truncate all messages after this one
-  conv.messages = conv.messages.slice(0, idx + 1);
-  conv.updatedAt = Date.now();
-  state.editingMessageIdx = -1;
-  renderMessages();
-  await dbPut('conversations', conv);
 
-  // Now resend to AI — reuse the send logic
-  if (idx === conv.messages.length - 1) {
-    // The edited message is the last one, resend to AI
+  if (isUserMessage) {
+    // User message: truncate after this, resend to AI
+    conv.messages = conv.messages.slice(0, idx + 1);
+    conv.updatedAt = Date.now();
+    state.editingMessageIdx = -1;
+    renderMessages();
+    await dbPut('conversations', conv);
     await resendToAI();
+  } else {
+    // AI message: just update content, no resend
+    conv.updatedAt = Date.now();
+    state.editingMessageIdx = -1;
+    renderMessages();
+    await dbPut('conversations', conv);
+    showToast('AI 消息已修改', 'success');
   }
 }
 
