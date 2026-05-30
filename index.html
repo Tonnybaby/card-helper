@@ -2723,16 +2723,23 @@ async function loadConversation(id) {
   // Update save button text based on editing mode
   updateSaveButtonText();
 
-  // Update selects to match conversation's settings
+  // Restore API select
   if (conv.apiConfigId != null) document.getElementById('chatApiSelect').value = conv.apiConfigId;
+
+  // Restore persona: use direct DB lookup (not select.value) for reliability
   if (conv.personaId != null) {
     document.getElementById('chatPersonaSelect').value = conv.personaId;
+    // Direct lookup from DB — bypasses select timing issues
+    try {
+      const persona = await dbGet('aiPersonas', conv.personaId);
+      state.personaName = persona ? persona.name : 'AI 助手';
+    } catch (e) { state.personaName = 'AI 助手'; }
   } else {
-    // Legacy conversation without stored persona: save current selection
+    // Legacy conversation: save current selection
     const selId = document.getElementById('chatPersonaSelect').value;
     if (selId) { conv.personaId = Number(selId); await dbPut('conversations', conv); }
+    await updatePersonaName();
   }
-  await updatePersonaName();
 
   // Always show the update card button when there are messages
   document.getElementById('btnGenerateFromChat').style.display = conv.messages.length > 0 ? 'inline-block' : 'none';
