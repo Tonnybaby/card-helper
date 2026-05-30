@@ -290,7 +290,7 @@ input, textarea, select { font-family: inherit; outline: none; }
 .message.user .message-avatar { background: #ffe4e1; }
 
 .message-bubble {
-  padding: 12px 16px;
+  padding: 12px 16px 28px 16px;
   border-radius: 16px;
   font-size: 14px;
   line-height: 1.6;
@@ -961,20 +961,23 @@ input, textarea, select { font-family: inherit; outline: none; }
 /* ===== Message Actions ===== */
 .message-actions {
   display: flex;
-  gap: 4px;
-  margin-top: 4px;
+  gap: 2px;
+  position: absolute;
+  bottom: 4px;
+  right: 8px;
 }
 .message-actions button {
   font-size: 10px;
-  padding: 2px 8px;
+  padding: 1px 6px;
   border-radius: 3px;
-  background: transparent;
+  background: rgba(255,255,255,0.7);
   border: 1px solid var(--border);
   color: var(--text-secondary);
   cursor: pointer;
   transition: all var(--transition);
+  backdrop-filter: blur(2px);
 }
-.message-actions button:hover { background: var(--primary-light); color: var(--primary-dark); }
+.message-actions button:hover { background: var(--primary-light); color: var(--primary-dark); border-color: var(--primary); }
 
 /* ===== Stop Generation Button ===== */
 .btn-stop-generate {
@@ -2431,13 +2434,14 @@ function renderMessages() {
               <button class="btn-cancel-edit" onclick="cancelMessageEdit()">取消</button>
             </div>
           ` : `
-            <div class="message-bubble">${contentHtml}</div>
-            ${m.timestamp ? `<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">${formatTime(m.timestamp)}</div>` : ''}
-            <div class="message-actions">
-              <button onclick="editMessage(${idx})" title="编辑后重问AI">✏️</button>
-              <button onclick="deleteMessage(${idx})" title="删除此消息及之后">🗑️</button>
-              <button onclick="copyMessage(${idx})" title="复制">📋</button>
+            <div class="message-bubble">${contentHtml}
+              <div class="message-actions">
+                <button onclick="editMessage(${idx})" title="编辑">✏️</button>
+                <button onclick="deleteMessage(${idx})" title="删除">🗑️</button>
+                <button onclick="copyMessage(${idx})" title="复制">📋</button>
+              </div>
             </div>
+            ${m.timestamp ? `<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">${formatTime(m.timestamp)}</div>` : ''}
           `}
         </div>
       </div>
