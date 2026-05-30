@@ -115,19 +115,29 @@ input, textarea, select { font-family: inherit; outline: none; }
   display: flex;
   align-items: center;
   padding: 0 20px;
-  gap: 12px;
+  gap: 14px;
   flex-shrink: 0;
   box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
-.topbar-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--primary-dark);
-  margin-right: 20px;
+.topbar-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-right: 28px;
   white-space: nowrap;
 }
+.topbar-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+.topbar-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
 .topbar-label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
   font-weight: 600;
   text-transform: uppercase;
@@ -901,7 +911,6 @@ input, textarea, select { font-family: inherit; outline: none; }
 <nav class="sidebar">
   <div class="sidebar-logo">
     <span class="icon">✨</span>
-    <span>写卡助手</span>
   </div>
   <div class="sidebar-nav">
     <button class="nav-item active" data-page="chat">
@@ -926,7 +935,10 @@ input, textarea, select { font-family: inherit; outline: none; }
 <div class="right-panel">
   <!-- Global Top Bar -->
   <div class="global-topbar" id="globalTopbar">
-    <span class="topbar-title">🌸 写卡助手</span>
+    <span class="topbar-brand">
+      <span class="topbar-title">🌸 写卡助手</span>
+      <span class="topbar-subtitle">你的AI写卡助手</span>
+    </span>
     <span class="topbar-label">API</span>
     <select id="chatApiSelect"></select>
     <span class="topbar-label">人设</span>
