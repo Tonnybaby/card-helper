@@ -918,10 +918,11 @@ input, textarea, select { font-family: inherit; outline: none; }
   max-width: 360px;
 }
 .toast.success { background: var(--success); }
-.toast.error { background: var(--danger); }
+.toast.error { background: var(--danger); animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards; }
 .toast.info { background: var(--primary); }
 
 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 
 /* ===== Confirm Dialog ===== */
 .confirm-overlay {
@@ -1169,6 +1170,97 @@ input, textarea, select { font-family: inherit; outline: none; }
 @media (min-width: 769px) and (max-width: 1024px) {
   .card-preview { width: 260px; }
   :root { --conv-list-w: 200px; }
+}
+
+/* ===== Error Log Page ===== */
+.errorlog-page {
+  padding: 20px 24px;
+  overflow-y: auto;
+  height: 100%;
+}
+.errorlog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.errorlog-header h3 { font-size: 18px; color: var(--text); }
+.btn-clear-logs {
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-clear-logs:hover { background: var(--danger); color: #fff; }
+.errorlog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.error-log-card {
+  background: #FFF5F5;
+  border: 1px solid #FECACA;
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 4px rgba(220,38,38,0.06);
+}
+.error-log-card-ts {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.error-log-card-msg {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+  word-break: break-word;
+}
+.error-log-card-stack {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 80px;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.03);
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+.error-log-card-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.error-log-card-actions button {
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.error-log-card-actions button:hover { background: var(--primary-light); }
+.error-log-card-actions .btn-log-delete:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+/* Error badge on sidebar */
+.error-log-badge {
+  background: var(--danger);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: auto;
+  min-width: 18px;
+  text-align: center;
 }
 
 /* ===== Scrollbar ===== */
@@ -1569,6 +1661,11 @@ input, textarea, select { font-family: inherit; outline: none; }
         <span class="icon">⚙️</span>
         <span>API / 人设</span>
       </button>
+      <button class="nav-item" data-page="errorlog" id="navErrorLog">
+        <span class="icon">🐛</span>
+        <span>错误日志</span>
+        <span class="error-log-badge" id="errorLogBadge" style="display:none;">0</span>
+      </button>
     </div>
     <div class="sidebar-disclaimer">
       <div class="sidebar-disclaimer-title">⚠️ 免责声明</div>
@@ -1719,6 +1816,24 @@ input, textarea, select { font-family: inherit; outline: none; }
     </div>
   </div>
 </div>
+</div>
+
+  <!-- ===== Error Log Page ===== -->
+  <div class="page" id="page-errorlog">
+    <div class="errorlog-page">
+      <div class="errorlog-header">
+        <h3>🐛 错误日志</h3>
+        <button class="btn-clear-logs" onclick="clearErrorLogs()">🗑️ 一键清空</button>
+      </div>
+      <div class="errorlog-list" id="errorLogList">
+        <div class="empty-state" id="errorLogEmpty">
+          <div class="icon">✅</div>
+          <p>暂无错误记录<br>网站运行正常</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /body-layout -->
 
 <!-- Modals -->
@@ -3196,6 +3311,7 @@ const state = {
   generatingForConvId: null, // lock: which conversation is AI generating for
   personaName: 'AI 助手',  // cached persona name for display
   editingMessageIdx: -1,   // which message is being edited inline
+  errorLogs: [],           // error log entries
   isGenerating: false,
   settingsTab: 'api'
 };
@@ -3206,6 +3322,83 @@ const state = {
 function dismissUpdateBanner() {
   document.getElementById('updateBanner').classList.add('hidden');
   localStorage.setItem('bannerDismissed_v4', '1');
+}
+
+// ============================================================
+// ===== Error Logging System =====
+// ============================================================
+function logError(error) {
+  const entry = {
+    id: Date.now(),
+    message: error.message || String(error),
+    stack: error.stack || '',
+    timestamp: Date.now()
+  };
+  state.errorLogs.unshift(entry);
+  updateErrorBadge();
+  renderErrorLogPage();
+  // Show error toast
+  showToast('⚠ ' + (entry.message.length > 60 ? entry.message.substring(0, 60) + '...' : entry.message), 'error');
+}
+
+function clearErrorLogs() {
+  showConfirm('确定要清空所有错误日志吗？', () => {
+    state.errorLogs = [];
+    updateErrorBadge();
+    renderErrorLogPage();
+    showToast('错误日志已清空', 'info');
+  });
+}
+
+function deleteErrorLog(id) {
+  state.errorLogs = state.errorLogs.filter(e => e.id !== id);
+  updateErrorBadge();
+  renderErrorLogPage();
+}
+
+function copyErrorLog(id) {
+  const entry = state.errorLogs.find(e => e.id === id);
+  if (!entry) return;
+  const text = '[' + new Date(entry.timestamp).toLocaleString() + ']\n' + entry.message + '\n' + (entry.stack || '');
+  navigator.clipboard.writeText(text).then(() => showToast('已复制错误详情', 'success'));
+}
+
+function updateErrorBadge() {
+  const badge = document.getElementById('errorLogBadge');
+  if (!badge) return;
+  const count = state.errorLogs.length;
+  if (count > 0) {
+    badge.style.display = 'inline';
+    badge.textContent = count;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function renderErrorLogPage() {
+  const list = document.getElementById('errorLogList');
+  const empty = document.getElementById('errorLogEmpty');
+  if (!list || !empty) return;
+
+  if (state.errorLogs.length === 0) {
+    list.innerHTML = '';
+    list.appendChild(empty);
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  list.innerHTML = state.errorLogs.map(e => `
+    <div class="error-log-card">
+      <div class="error-log-card-ts">📅 ${new Date(e.timestamp).toLocaleString()}</div>
+      <div class="error-log-card-msg">${escHtml(e.message)}</div>
+      ${e.stack ? '<div class="error-log-card-stack">' + escHtml(e.stack) + '</div>' : ''}
+      <div class="error-log-card-actions">
+        <button onclick="copyErrorLog(${e.id})">📋 复制</button>
+        <button class="btn-log-delete" onclick="deleteErrorLog(${e.id})">🗑️ 删除</button>
+      </div>
+    </div>
+  `).join('');
 }
 
 function showToast(msg, type = 'info') {
@@ -3259,6 +3452,7 @@ function switchPage(page) {
 
   if (page === 'cards') renderCardsPage();
   if (page === 'settings') renderSettingsPage();
+  if (page === 'errorlog') renderErrorLogPage();
 
   // Sync mobile tabs (mobile only)
   if (window.innerWidth <= 768) {
@@ -5589,6 +5783,15 @@ document.getElementById('cardSearch').addEventListener('input', renderCardsPage)
 // ============================================================
 async function init() {
   await openDB();
+
+  // Global error interceptors
+  window.onerror = (message, source, lineno, colno, error) => {
+    logError(error || new Error(String(message)));
+    return true;
+  };
+  window.addEventListener('unhandledrejection', (event) => {
+    logError(event.reason || new Error('Unhandled Promise rejection'));
+  });
 
   // Show update banner (once per session)
   if (!localStorage.getItem('bannerDismissed_v4')) {
