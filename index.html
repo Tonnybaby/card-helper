@@ -1245,12 +1245,55 @@ input, textarea, select { font-family: inherit; outline: none; }
 #toggleCardPreview {
   left: -14px;
 }
+.collapse-hint {
+  display: none;
+  position: absolute;
+  top: calc(50% + 22px);
+  left: 50%;
+  transform: translateX(-50%);
+  writing-mode: vertical-rl;
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  letter-spacing: 2px;
+  opacity: 0.6;
+}
+.card-preview.collapsed ~ .divider-right .collapse-hint { display: block; }
 
 /* Divider wrappers need position:relative */
-.divider-left, .divider-right {
+.divider-left {
   position: relative;
   flex-shrink: 0;
   width: 1px;
+}
+.divider-right {
+  position: relative;
+  flex-shrink: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s;
+  z-index: 6;
+}
+.divider-right:hover,
+.divider-right.dragging {
+  background: var(--primary-light);
+}
+.divider-right::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 100%;
+  background: var(--border);
+  border-radius: 1px;
+}
+.divider-right:hover::before,
+.divider-right.dragging::before {
+  background: var(--primary);
+  width: 3px;
 }
 
 /* Collapsed states */
@@ -1485,7 +1528,8 @@ input, textarea, select { font-family: inherit; outline: none; }
     <span class="update-banner-icon">🎉</span>
     <div class="update-banner-text">
       <strong>写卡助手已全面升级！</strong>
-      <span>卡片管线重做 · 支持多角色场景卡 · SillyTavern V3 格式 · 世界书标准导出 · 三款 AI 人设就位</span>
+      <span>卡片管线重做 · 支持多角色场景卡 · SillyTavern V3 格式 · 世界书标准导出</span>
+      <span>折叠按钮双向折叠 · 分割线拖拽调整宽度 · 宽度偏好自动记忆</span>
     </div>
     <button class="update-banner-close" onclick="dismissUpdateBanner()">✕</button>
   </div>
@@ -1563,10 +1607,11 @@ input, textarea, select { font-family: inherit; outline: none; }
       </div>
 
       <!-- Right Divider -->
-      <div class="divider-right">
+      <div class="divider-right" id="dividerRight">
         <button class="collapse-toggle" id="toggleCardPreview" onclick="toggleCollapsePanel('cardPreview')" title="折叠卡片预览">
           <svg viewBox="0 0 16 16" width="14" height="14"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
+        <span class="collapse-hint">卡片预览</span>
       </div>
 
       <!-- Card Preview -->
@@ -2667,7 +2712,7 @@ const state = {
 // ============================================================
 function dismissUpdateBanner() {
   document.getElementById('updateBanner').classList.add('hidden');
-  sessionStorage.setItem('bannerDismissed', '1');
+  sessionStorage.setItem('bannerDismissed_v2', '1');
 }
 
 function showToast(msg, type = 'info') {
@@ -4623,19 +4668,25 @@ function extractCharaFromPNG(bytes) {
 }
 
 // ============================================================
-// ===== Panel Collapse (ChatGPT style) =====
+// ===== Panel Collapse (bidirectional) =====
 // ============================================================
 function toggleCollapsePanel(name) {
   const el = document.querySelector(name === 'convList' ? '.conv-list' : '#cardPreview');
   const btn = document.getElementById(name === 'convList' ? 'toggleConvList' : 'toggleCardPreview');
   if (!el) return;
   el.classList.toggle('collapsed');
-  // Flip the arrow direction
-  if (btn) {
-    btn.classList.toggle('flipped', el.classList.contains('collapsed'));
-  }
-  // Save state to localStorage
+  if (btn) updateCollapseArrow(btn, el.classList.contains('collapsed'));
   saveCollapseState();
+}
+
+function updateCollapseArrow(btn, isCollapsed) {
+  const svg = btn.querySelector('svg path');
+  if (!svg) return;
+  if (isCollapsed) {
+    svg.setAttribute('d', 'M6 3l5 5-5 5');
+  } else {
+    svg.setAttribute('d', 'M10 3l-5 5 5 5');
+  }
 }
 
 function saveCollapseState() {
@@ -4653,13 +4704,73 @@ function restoreCollapseState() {
     const state = JSON.parse(saved);
     if (state.convList) {
       document.querySelector('.conv-list').classList.add('collapsed');
-      document.getElementById('toggleConvList').classList.add('flipped');
+      updateCollapseArrow(document.getElementById('toggleConvList'), true);
     }
     if (state.cardPreview) {
       document.getElementById('cardPreview').classList.add('collapsed');
-      document.getElementById('toggleCardPreview').classList.add('flipped');
+      updateCollapseArrow(document.getElementById('toggleCardPreview'), true);
     }
   } catch (e) {}
+}
+
+// ============================================================
+// ===== Draggable Divider Resizer =====
+// ============================================================
+function initPanelResizer() {
+  const divider = document.getElementById('dividerRight');
+  const cardPreview = document.getElementById('cardPreview');
+  if (!divider || !cardPreview) return;
+
+  const MIN_PREVIEW = 280;
+  const MAX_PREVIEW_RATIO = 0.6;
+  const MIN_CHAT = 400;
+
+  // Restore saved width
+  const saved = localStorage.getItem('previewWidth');
+  if (saved) {
+    const w = parseInt(saved);
+    if (w >= MIN_PREVIEW) {
+      cardPreview.style.width = w + 'px';
+    }
+  }
+
+  let dragging = false;
+  let startX = 0;
+  let startW = 0;
+
+  divider.addEventListener('mousedown', (e) => {
+    // Don't start resize if clicking the collapse button
+    if (e.target.closest('.collapse-toggle')) return;
+
+    e.preventDefault();
+    dragging = true;
+    startX = e.clientX;
+    startW = cardPreview.offsetWidth;
+    divider.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const delta = startX - e.clientX;
+    let newW = startW + delta;
+    const totalW = document.querySelector('.chat-layout').offsetWidth;
+    const maxW = totalW * MAX_PREVIEW_RATIO;
+    newW = Math.max(MIN_PREVIEW, Math.min(maxW, newW));
+    // Ensure chat area stays big enough
+    if (totalW - newW < MIN_CHAT) newW = totalW - MIN_CHAT;
+    cardPreview.style.width = newW + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    divider.classList.remove('dragging');
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+    localStorage.setItem('previewWidth', cardPreview.offsetWidth);
+  });
 }
 
 // ============================================================
@@ -4987,7 +5098,7 @@ async function init() {
   await openDB();
 
   // Show update banner (once per session)
-  if (!sessionStorage.getItem('bannerDismissed')) {
+  if (!sessionStorage.getItem('bannerDismissed_v2')) {
     document.getElementById('updateBanner').classList.remove('hidden');
   }
 
@@ -4996,6 +5107,9 @@ async function init() {
 
   // Init resizable input
   initInputResize();
+
+  // Init draggable panel resizer (PC only)
+  initPanelResizer();
 
   // Ensure system personas exist and are up-to-date
   const personas = await dbGetAll('aiPersonas');
