@@ -1174,17 +1174,43 @@ input, textarea, select { font-family: inherit; outline: none; }
 
 /* ===== Error Log Page ===== */
 .errorlog-page {
-  padding: 20px 24px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 .errorlog-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 20px;
+  padding: 14px 24px 0;
+  flex-shrink: 0;
 }
-.errorlog-header h3 { font-size: 18px; color: var(--text); }
+.errorlog-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+.errorlog-center {
+  text-align: center;
+}
+.errorlog-footer {
+  flex-shrink: 0;
+  padding: 12px 24px 16px;
+  border-top: 1px solid var(--border);
+  opacity: 0.6;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+.errorlog-footer .sidebar-disclaimer {
+  max-height: none;
+  padding: 0;
+  border-top: none;
+  font-size: 10px;
+}
 .btn-clear-logs {
   background: transparent;
   border: 1px solid var(--danger);
@@ -1200,6 +1226,9 @@ input, textarea, select { font-family: inherit; outline: none; }
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
+  max-width: 800px;
+  align-self: flex-start;
 }
 .error-log-card {
   background: #FFF5F5;
@@ -1662,19 +1691,10 @@ input, textarea, select { font-family: inherit; outline: none; }
         <span>API / 人设</span>
       </button>
       <button class="nav-item" data-page="errorlog" id="navErrorLog">
-        <span class="icon">🐛</span>
+        <span class="icon">📋</span>
         <span>错误日志</span>
         <span class="error-log-badge" id="errorLogBadge" style="display:none;">0</span>
       </button>
-    </div>
-    <div class="sidebar-disclaimer">
-      <div class="sidebar-disclaimer-title">⚠️ 免责声明</div>
-      <ol>
-        <li>本站免费自用，若你付费使用则被骗了。</li>
-        <li>贩子4000+。</li>
-        <li>API Keys 及一切信息仅存于本地浏览器，任何人（包括作者）无法获取。</li>
-        <li>本站免费分享，使用后个人信息泄露与作者无关。</li>
-      </ol>
     </div>
   </nav>
 
@@ -1822,13 +1842,24 @@ input, textarea, select { font-family: inherit; outline: none; }
   <div class="page" id="page-errorlog">
     <div class="errorlog-page">
       <div class="errorlog-header">
-        <h3>🐛 错误日志</h3>
         <button class="btn-clear-logs" onclick="clearErrorLogs()">🗑️ 一键清空</button>
       </div>
-      <div class="errorlog-list" id="errorLogList">
-        <div class="empty-state" id="errorLogEmpty">
-          <div class="icon">✅</div>
-          <p>暂无错误记录<br>网站运行正常</p>
+      <div class="errorlog-body" id="errorLogBody">
+        <div class="errorlog-center" id="errorLogCenter">
+          <div class="icon" style="font-size:40px;">📋</div>
+          <p style="margin-top:12px;color:var(--text-secondary);">暂无错误记录<br>网站运行正常</p>
+        </div>
+        <div class="errorlog-list" id="errorLogList" style="display:none;"></div>
+      </div>
+      <div class="errorlog-footer">
+        <div class="sidebar-disclaimer">
+          <div class="sidebar-disclaimer-title">⚠️ 免责声明</div>
+          <ol>
+            <li>本站免费自用，若你付费使用则被骗了。</li>
+            <li>贩子4000+。</li>
+            <li>API Keys 及一切信息仅存于本地浏览器，任何人（包括作者）无法获取。</li>
+            <li>本站免费分享，使用后个人信息泄露与作者无关。</li>
+          </ol>
         </div>
       </div>
     </div>
@@ -3377,17 +3408,23 @@ function updateErrorBadge() {
 
 function renderErrorLogPage() {
   const list = document.getElementById('errorLogList');
-  const empty = document.getElementById('errorLogEmpty');
-  if (!list || !empty) return;
+  const center = document.getElementById('errorLogCenter');
+  const body = document.getElementById('errorLogBody');
+  if (!list || !center || !body) return;
 
   if (state.errorLogs.length === 0) {
+    list.style.display = 'none';
     list.innerHTML = '';
-    list.appendChild(empty);
-    empty.style.display = 'block';
+    center.style.display = 'block';
+    body.style.alignItems = 'center';
+    body.style.justifyContent = 'center';
     return;
   }
 
-  empty.style.display = 'none';
+  center.style.display = 'none';
+  list.style.display = 'flex';
+  body.style.alignItems = 'flex-start';
+  body.style.justifyContent = 'flex-start';
   list.innerHTML = state.errorLogs.map(e => `
     <div class="error-log-card">
       <div class="error-log-card-ts">📅 ${new Date(e.timestamp).toLocaleString()}</div>
