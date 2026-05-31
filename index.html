@@ -524,6 +524,14 @@ input, textarea, select { font-family: inherit; outline: none; }
 .preview-form input:focus, .preview-form textarea:focus { border-color: var(--primary); }
 .preview-form textarea { min-height: 60px; resize: vertical; }
 
+.field-hint {
+  font-size: 10px;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  margin-top: -14px;
+  line-height: 1.4;
+}
+
 .btn-save-card {
   background: linear-gradient(135deg, var(--accent), var(--primary));
   color: #fff;
@@ -1514,22 +1522,30 @@ input, textarea, select { font-family: inherit; outline: none; }
         <div class="preview-empty" id="previewEmpty"></div>
         <div class="preview-form hidden" id="previewForm">
           <div class="preview-form-fields">
-          <label>角色名称</label>
-          <input type="text" id="cardName" placeholder="角色名称">
-          <label>简短描述</label>
-          <textarea id="cardDesc" placeholder="一两句话描述这个角色" rows="3"></textarea>
-          <label>性格特征</label>
-          <textarea id="cardPersonality" placeholder="角色的性格特点" rows="3"></textarea>
-          <label>背景故事 (Scenario)</label>
-          <textarea id="cardScenario" placeholder="角色的背景设定" rows="3"></textarea>
-          <label>首次对话消息 (First Message)</label>
-          <textarea id="cardFirstMes" placeholder="角色第一次说的话" rows="3"></textarea>
-          <label>示例对话 (Message Examples)</label>
-          <textarea id="cardMesExample" placeholder="角色对话示例" rows="4"></textarea>
-          <label>标签 (用逗号分隔)</label>
-          <input type="text" id="cardTags" placeholder="例如: 奇幻, 战士, 热血">
-          <label>创作者备注</label>
-          <textarea id="cardNotes" placeholder="其他备注信息" rows="2"></textarea>
+          <label>🎭 卡片名称</label>
+          <input type="text" id="cardName" placeholder="这张角色卡叫什么名字">
+          <span class="field-hint">建议：场景/卡名。所有角色信息写入下方世界书。</span>
+          <label>📝 卡片描述</label>
+          <textarea id="cardDesc" placeholder="一句话说清：这是什么场景、做什么的" rows="3"></textarea>
+          <span class="field-hint">描述这张卡的整体内容。如果包含多个角色，这里写整体介绍，每个角色的详情写入世界书。</span>
+          <label>💬 叙事风格</label>
+          <textarea id="cardPersonality" placeholder="AI 扮演时的写作基调、语气、风格" rows="3"></textarea>
+          <span class="field-hint">不是某个角色的性格，而是 AI 在扮演时的整体叙事风格和基调。</span>
+          <label>🌍 世界观 / 背景</label>
+          <textarea id="cardScenario" placeholder="整个世界或场景的背景、时代、规则" rows="3"></textarea>
+          <span class="field-hint">这张卡所属世界的设定：时代、地点、社会规则、核心矛盾等。</span>
+          <label>💬 开场叙事</label>
+          <textarea id="cardFirstMes" placeholder="卡片第一次输出的内容，建议写成沉浸式叙事" rows="3"></textarea>
+          <span class="field-hint">AI 的第一条消息。建议写成沉浸式的开场，直接把玩家带入场景。</span>
+          <label>📖 对话范例</label>
+          <textarea id="cardMesExample" placeholder="使用 <START> 分隔多轮示例对话" rows="4"></textarea>
+          <span class="field-hint">展示这张卡的对话风格。用 &lt;START&gt; 标签分隔多轮。</span>
+          <label>🏷️ 标签</label>
+          <input type="text" id="cardTags" placeholder="例如: 奇幻, 校园, 日常, 多角色, 轻小说">
+          <span class="field-hint">用逗号分隔。标签帮助搜索和分类。</span>
+          <label>📄 使用说明 / 创作者备注</label>
+          <textarea id="cardNotes" placeholder="创作理念、扮演注意、使用指南" rows="3"></textarea>
+          <span class="field-hint">写给玩家看的：如何开始、注意事项、创作理念等。</span>
           <!-- World Book Section -->
           <div class="world-book-section">
             <label style="display:flex;justify-content:space-between;align-items:center;">
@@ -1666,9 +1682,9 @@ input, textarea, select { font-family: inherit; outline: none; }
 <!-- Card Edit Modal (for card library) -->
 <div class="modal-overlay hidden" id="cardEditModalOverlay">
   <div class="modal">
-    <h3>编辑角色卡</h3>
+    <h3>编辑角色场景卡</h3>
     <div class="modal-field">
-      <label>角色名称</label>
+      <label>🎭 卡片名称</label>
       <input type="text" id="editCardName">
     </div>
     <div class="modal-field">
@@ -3890,24 +3906,27 @@ async function triggerGenerateFromChat() {
       + '\n请将世界书内容整合到角色卡的 world_book 字段中。';
   }
 
-  const triggerMsg = '请根据我们以上所有对话的内容，从中提取所有角色相关信息，综合整理出一份完整的角色卡。'
-    + '不要参考预览面板中的任何内容，完全基于对话历史来构建。'
-    + '如果某些信息在对话中没有被提及，请留空不要编造。'
+  const triggerMsg = '你现在需要以资深 SillyTavern 角色卡写手的标准，根据我们上面全部的对话内容，创作一张专业级的角色场景卡。'
+    + '\n\n【核心理念】'
+    + '\n这张卡是一张"场景卡"，不是一个"角色卡"。卡片级字段描述整体，所有角色的详细信息写入 character_book。'
+    + '\n\n【卡片级字段的写作要求】'
+    + '\n- name：卡片名称。如果是单角色场景可以用角色名，如果是多角色场景用场景名。'
+    + '\n- description：用 Markdown 结构化写作，分 2-3 个二级标题段落。包含整体介绍、核心玩法/场景、亮点特色。100-500字。'
+    + '\n- personality：AI 的叙事风格和扮演基调，不是某个角色的性格。用 bullet point 列出。'
+    + '\n- scenario：世界观和背景，包含时代、地点、社会规则、核心矛盾等。展开写，100-300字。'
+    + '\n- first_mes：沉浸式开场叙事。用生动的语言把玩家拉入场景，可以是情境描写、内置引导、或角色独白。200-1000字。'
+    + '\n- mes_example：用 <START> 标签分隔 2-3 个对话示例。每个示例包含玩家输入和 AI 回复，展示这张卡的互动风格。'
+    + '\n- creator_notes：写给玩家看的使用说明，包含创作理念、扮演注意、玩家定位、操作指南。'
+    + '\n- tags：5-15 个中英文标签，涵盖类型、风格、世界观、角色特征。'
     + wbContext
-    + '\n请严格按以下格式输出：\n'
-    + '[CHARACTER_CARD]\n'
-    + '{\n'
-    + '  "name": "角色名称",\n'
-    + '  "description": "简短描述",\n'
-    + '  "personality": "性格特征",\n'
-    + '  "scenario": "背景故事",\n'
-    + '  "first_mes": "首次对话消息",\n'
-    + '  "mes_example": "示例对话",\n'
-    + '  "tags": ["标签1"],\n'
-    + '  "creator_notes": "备注",\n'
-    + '  "world_book": {"entries": [{"title":"...", "keys":"...", "position":"before_char", "depth":0, "content":"..."}]}\n'
-    + '}\n'
-    + '[/CHARACTER_CARD]';
+    + '\n\n【character_book 世界书条目要求】'
+    + '\n每个子角色必须作为一条世界书条目写入 character_book。每条必须包含以下完整字段的 JSON 对象：'
+    + '\n{ "id": 序号, "comment": "条目标题", "keys": ["触发词"], "secondary_keys": [], "constant": true/false, "selective": true/false, "insertion_order": 序号, "enabled": true, "position": "before_char", "use_regex": true, "extensions": { "depth": 深度数字, "probability": 100 } }'
+    + '\n\n【输出格式】'
+    + '\n[CHARACTER_CARD]'
+    + '\n{ 完整的角色卡 JSON，包含 name/description/personality/scenario/first_mes/mes_example/tags/creator_notes/character_book }'
+    + '\n[/CHARACTER_CARD]'
+    + '\n\n【注意】只填写对话中明确出现的内容，没提到的留空。character_book 的 entries 数组每条必须包含以上所有字段。';
 
   // Mark that user explicitly requested card generation
   state.cardRequested = true;
@@ -4130,9 +4149,71 @@ async function saveCardEdit() {
 // ===== Export Functions =====
 // ============================================================
 function buildCardV2JSON(card) {
+  // Build SillyTavern-compatible character_book entries
+  const wbEntries = (card.world_book && card.world_book.entries)
+    ? card.world_book.entries.map((e, i) => ({
+        id: i,
+        keys: typeof e.keys === 'string' ? e.keys.split(',').map(k => k.trim()).filter(Boolean) : (Array.isArray(e.keys) ? e.keys : []),
+        secondary_keys: [],
+        comment: e.title || e.comment || '',
+        content: e.content || '',
+        constant: e.constant || false,
+        selective: !e.constant,
+        insertion_order: i + 100,
+        enabled: true,
+        position: e.position || 'before_char',
+        use_regex: false,
+        extensions: {
+          position: e.position === 'after_char' ? 1 : 0,
+          exclude_recursion: false,
+          display_index: i,
+          probability: 100,
+          useProbability: true,
+          depth: e.depth || 4,
+          selectiveLogic: 0,
+          group: '',
+          group_override: false,
+          group_weight: 100,
+          prevent_recursion: false,
+          scan_depth: null,
+          case_sensitive: false,
+          match_whole_words: false,
+          use_group_scoring: false,
+          automation_id: '',
+          role: 'system'
+        }
+      }))
+    : [];
+
   return {
-    spec: 'chara_card_v2',
-    spec_version: '2.0',
+    spec: 'chara_card_v3',
+    spec_version: '3.0',
+    name: card.name || '',
+    description: card.description || '',
+    personality: card.personality || '',
+    scenario: card.scenario || '',
+    first_mes: card.first_mes || '',
+    mes_example: card.mes_example || '',
+    creator_notes: card.creator_notes || '',
+    system_prompt: '',
+    post_history_instructions: '',
+    tags: Array.isArray(card.tags) ? card.tags : [],
+    creator: '',
+    character_version: '1.0',
+    alternate_greetings: [],
+    character_book: {
+      entries: wbEntries
+    },
+    extensions: {
+      talkativeness: '0.5',
+      fav: false,
+      depth_prompt: {
+        prompt: '',
+        depth: 4,
+        role: 'system'
+      }
+    },
+    group_only_greetings: [],
     data: {
       name: card.name || '',
       description: card.description || '',
@@ -4147,7 +4228,18 @@ function buildCardV2JSON(card) {
       creator: '',
       character_version: '1.0',
       alternate_greetings: [],
-      extensions: card.world_book ? { world_book: card.world_book } : {}
+      character_book: {
+        entries: wbEntries
+      },
+      extensions: {
+        talkativeness: '0.5',
+        fav: false,
+        depth_prompt: {
+          prompt: '',
+          depth: 4,
+          role: 'system'
+        }
+      }
     }
   };
 }
