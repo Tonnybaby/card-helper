@@ -5612,7 +5612,7 @@ async function init() {
   if (oldDefault) await dbDelete('aiPersonas', oldDefault.id);
 
   // Clean up old persona versions (pre-v4)
-  const oldNames = ['ai写卡助手', 'ai写卡助手 v3', '柚乃 v3', '郭德纲 v3'];
+  const oldNames = ['ai写卡助手', 'ai写卡助手 v3', '柚乃', '柚乃 v3', '郭德纲', '郭德纲 v3'];
   for (const oldName of oldNames) {
     const old = personas.find(p => p.name === oldName);
     if (old) await dbDelete('aiPersonas', old.id);
