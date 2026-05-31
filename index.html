@@ -1178,12 +1178,13 @@ input, textarea, select { font-family: inherit; outline: none; }
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  position: relative;
 }
 .errorlog-header {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 14px 24px 0;
+  position: absolute;
+  top: 14px;
+  right: 24px;
+  z-index: 2;
   flex-shrink: 0;
 }
 .errorlog-body {
@@ -1196,20 +1197,6 @@ input, textarea, select { font-family: inherit; outline: none; }
 }
 .errorlog-center {
   text-align: center;
-}
-.errorlog-footer {
-  flex-shrink: 0;
-  padding: 12px 24px 16px;
-  border-top: 1px solid var(--border);
-  opacity: 0.6;
-  font-size: 10px;
-  color: var(--text-secondary);
-}
-.errorlog-footer .sidebar-disclaimer {
-  max-height: none;
-  padding: 0;
-  border-top: none;
-  font-size: 10px;
 }
 .btn-clear-logs {
   background: transparent;
@@ -1696,6 +1683,15 @@ input, textarea, select { font-family: inherit; outline: none; }
         <span class="error-log-badge" id="errorLogBadge" style="display:none;">0</span>
       </button>
     </div>
+    <div class="sidebar-disclaimer">
+      <div class="sidebar-disclaimer-title">⚠️ 免责声明</div>
+      <ol>
+        <li>本站免费自用，若你付费使用则被骗了。</li>
+        <li>贩子4000+。</li>
+        <li>API Keys 及一切信息仅存于本地浏览器，任何人（包括作者）无法获取。</li>
+        <li>本站免费分享，使用后个人信息泄露与作者无关。</li>
+      </ol>
+    </div>
   </nav>
 
   <!-- ===== Chat Page ===== -->
@@ -1850,17 +1846,6 @@ input, textarea, select { font-family: inherit; outline: none; }
           <p style="margin-top:12px;color:var(--text-secondary);">暂无错误记录<br>网站运行正常</p>
         </div>
         <div class="errorlog-list" id="errorLogList" style="display:none;"></div>
-      </div>
-      <div class="errorlog-footer">
-        <div class="sidebar-disclaimer">
-          <div class="sidebar-disclaimer-title">⚠️ 免责声明</div>
-          <ol>
-            <li>本站免费自用，若你付费使用则被骗了。</li>
-            <li>贩子4000+。</li>
-            <li>API Keys 及一切信息仅存于本地浏览器，任何人（包括作者）无法获取。</li>
-            <li>本站免费分享，使用后个人信息泄露与作者无关。</li>
-          </ol>
-        </div>
       </div>
     </div>
   </div>
