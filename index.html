@@ -112,6 +112,49 @@ input, textarea, select { font-family: inherit; outline: none; }
   margin-bottom: 3px;
 }
 
+/* ===== Update Banner ===== */
+.update-banner {
+  background: linear-gradient(135deg, #ffe4ec, #fdf0f5);
+  border-bottom: 1px solid #f0c4d8;
+  padding: 10px 20px;
+  flex-shrink: 0;
+}
+.update-banner.hidden { display: none; }
+.update-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.update-banner-icon { font-size: 22px; flex-shrink: 0; }
+.update-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.update-banner-text strong {
+  font-size: 14px;
+  color: var(--primary-dark);
+}
+.update-banner-text span {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.update-banner-close {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-radius: 50%;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+.update-banner-close:hover { background: rgba(0,0,0,0.05); color: var(--text); }
+
 /* ===== Global Top Bar ===== */
 .global-topbar {
   height: 52px;
@@ -1436,6 +1479,18 @@ input, textarea, select { font-family: inherit; outline: none; }
   <div class="mobile-drawer-list" id="mobileConvList"></div>
 </div>
 
+<!-- Update Banner -->
+<div class="update-banner" id="updateBanner">
+  <div class="update-banner-content">
+    <span class="update-banner-icon">🎉</span>
+    <div class="update-banner-text">
+      <strong>写卡助手已全面升级！</strong>
+      <span>卡片管线重做 · 支持多角色场景卡 · SillyTavern V3 格式 · 世界书标准导出 · 三款 AI 人设就位</span>
+    </div>
+    <button class="update-banner-close" onclick="dismissUpdateBanner()">✕</button>
+  </div>
+</div>
+
 <!-- Body: Sidebar + Main Content -->
 <div class="body-layout">
   <!-- Sidebar -->
@@ -2610,6 +2665,11 @@ const state = {
 // ============================================================
 // ===== Toast =====
 // ============================================================
+function dismissUpdateBanner() {
+  document.getElementById('updateBanner').classList.add('hidden');
+  sessionStorage.setItem('bannerDismissed', '1');
+}
+
 function showToast(msg, type = 'info') {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
@@ -4925,6 +4985,11 @@ document.getElementById('cardSearch').addEventListener('input', renderCardsPage)
 // ============================================================
 async function init() {
   await openDB();
+
+  // Show update banner (once per session)
+  if (!sessionStorage.getItem('bannerDismissed')) {
+    document.getElementById('updateBanner').classList.remove('hidden');
+  }
 
   // Restore panel collapse state
   restoreCollapseState();
