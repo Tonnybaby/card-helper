@@ -1174,31 +1174,30 @@ input, textarea, select { font-family: inherit; outline: none; }
 
 /* ===== Error Log Page ===== */
 .errorlog-page {
-  display: flex;
-  flex-direction: column;
   flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  position: relative;
-}
-.errorlog-header {
-  position: absolute;
-  top: 14px;
-  right: 24px;
-  z-index: 2;
-  flex-shrink: 0;
-}
-.errorlog-body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow-y: auto;
-  padding: 20px 24px;
+  padding: 16px 24px;
+}
+.errorlog-toolbar {
+  text-align: right;
+  margin-bottom: 16px;
 }
 .errorlog-center {
   text-align: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+}
+.errorlog-page-inner {
+  position: relative;
+  min-height: calc(100vh - 120px);
+}
+.errorlog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .btn-clear-logs {
   background: transparent;
@@ -1839,12 +1838,12 @@ input, textarea, select { font-family: inherit; outline: none; }
   <!-- ===== Error Log Page ===== -->
   <div class="page" id="page-errorlog">
     <div class="errorlog-page">
-      <div class="errorlog-header">
+      <div class="errorlog-toolbar">
         <button class="btn-clear-logs" onclick="clearErrorLogs()">🗑️ 一键清空</button>
       </div>
-      <div class="errorlog-body" id="errorLogBody">
+      <div class="errorlog-page-inner">
         <div class="errorlog-center" id="errorLogCenter">
-          <div class="icon" style="font-size:40px;">📋</div>
+          <div style="font-size:40px;">📋</div>
           <p style="margin-top:12px;color:var(--text-secondary);">暂无错误记录<br>网站运行正常</p>
         </div>
         <div class="errorlog-list" id="errorLogList" style="display:none;"></div>
@@ -3396,22 +3395,17 @@ function updateErrorBadge() {
 function renderErrorLogPage() {
   const list = document.getElementById('errorLogList');
   const center = document.getElementById('errorLogCenter');
-  const body = document.getElementById('errorLogBody');
-  if (!list || !center || !body) return;
+  if (!list || !center) return;
 
   if (state.errorLogs.length === 0) {
     list.style.display = 'none';
     list.innerHTML = '';
     center.style.display = 'block';
-    body.style.alignItems = 'center';
-    body.style.justifyContent = 'center';
     return;
   }
 
   center.style.display = 'none';
   list.style.display = 'flex';
-  body.style.alignItems = 'flex-start';
-  body.style.justifyContent = 'flex-start';
   list.innerHTML = state.errorLogs.map(e => `
     <div class="error-log-card">
       <div class="error-log-card-ts">📅 ${new Date(e.timestamp).toLocaleString()}</div>
