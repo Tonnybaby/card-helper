@@ -3368,8 +3368,20 @@ function populatePreviewForm(cardData) {
   document.getElementById('cardTags').value = Array.isArray(cardData.tags) ? cardData.tags.join(', ') : (cardData.tags || '');
   document.getElementById('cardNotes').value = cardData.creator_notes || '';
 
-  // World book
-  worldBookEntries = (cardData.world_book && cardData.world_book.entries) ? cardData.world_book.entries.map(e => ({...e})) : [];
+  // World book — accept both character_book (SillyTavern standard) and world_book (legacy)
+  const wbSource = cardData.character_book || cardData.world_book;
+  if (wbSource && wbSource.entries) {
+    worldBookEntries = wbSource.entries.map(e => ({
+      title: e.comment || e.title || '',
+      keys: Array.isArray(e.keys) ? e.keys.join(', ') : (e.keys || ''),
+      position: e.position || (e.extensions && e.extensions.position === 1 ? 'after_char' : 'before_char') || 'before_char',
+      depth: (e.extensions && e.extensions.depth) || e.depth || 4,
+      content: e.content || '',
+      constant: e.constant || false
+    }));
+  } else {
+    worldBookEntries = [];
+  }
   renderWorldBookEntries();
 
   state.currentCardData = cardData;
