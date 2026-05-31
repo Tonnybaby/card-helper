@@ -3203,7 +3203,7 @@ async function callOpenAIWithAbort(config, messages, signal) {
   if (config.apiKey) headers['Authorization'] = `Bearer ${config.apiKey}`;
   const response = await fetch(url, {
     method: 'POST', headers, signal,
-    body: JSON.stringify({ model: config.model, messages, temperature: 0.8, max_tokens: 4096 })
+    body: JSON.stringify({ model: config.model, messages, temperature: 0.8, max_tokens: 32000 })
   });
   if (!response.ok) { const errText = await response.text(); throw new Error(`API 错误 (${response.status}): ${errText}`); }
   const data = await response.json();
@@ -3215,7 +3215,7 @@ async function callAnthropicWithAbort(config, messages, signal) {
   const headers = { 'Content-Type': 'application/json', 'x-api-key': config.apiKey, 'anthropic-version': '2023-06-01' };
   const systemMsg = messages.find(m => m.role === 'system');
   const chatMessages = messages.filter(m => m.role !== 'system').map(m => ({ role: m.role, content: m.content }));
-  const body = { model: config.model, max_tokens: 4096, messages: chatMessages };
+  const body = { model: config.model, max_tokens: 32000, messages: chatMessages };
   if (systemMsg) body.system = systemMsg.content;
   const response = await fetch(url, { method: 'POST', headers, signal, body: JSON.stringify(body) });
   if (!response.ok) { const errText = await response.text(); throw new Error(`Anthropic API 错误 (${response.status}): ${errText}`); }
@@ -3265,7 +3265,7 @@ async function callOpenAI(config, messages) {
       model: config.model,
       messages: messages,
       temperature: 0.8,
-      max_tokens: 4096
+      max_tokens: 32000
     })
   });
 
@@ -3295,7 +3295,7 @@ async function callAnthropic(config, messages) {
 
   const body = {
     model: config.model,
-    max_tokens: 4096,
+    max_tokens: 32000,
     messages: chatMessages
   };
   if (systemMsg) {
