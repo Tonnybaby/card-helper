@@ -1707,7 +1707,7 @@ input, textarea, select { font-family: inherit; outline: none; }
   <button class="mobile-hamburger" id="mobileHamburger" onclick="toggleMobileDrawer()">☰</button>
   <span class="topbar-brand">
     <span class="topbar-title">🌸 写卡助手</span>
-    <span class="topbar-version">v2.1</span>
+    <span class="topbar-version">v2.2</span>
     <span class="topbar-subtitle">你的AI写卡助手</span>
   </span>
   <span class="mobile-selects">
@@ -3818,52 +3818,13 @@ async function fetchModels() {
       return;
     }
 
-    // --- Filter & sort ---
-    // Non-chat model keywords to exclude
-    const excludePatterns = [
-      'embed', 'moderat', 'dall-e', 'dall_e', 'whisper', 'tts',
-      'audio', 'speech', 'babbage', 'davinci', 'curie', 'ada',
-      'image', 'generate', 'upscale', 'vector', 'search', 'rerank',
-      'bge-', 'text-embedding', 'voyage', 'cohere/embed'
-    ];
+    // Sort alphabetically, no filtering
+    rawModels.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
-    let models = rawModels.filter(m => {
-      const lower = m.toLowerCase();
-      return !excludePatterns.some(p => lower.includes(p));
-    });
-
-    // Sort: common/good models first, then alphabetical
-    const priorityPrefixes = [
-      'gpt-4', 'gpt-4o', 'gpt-3.5', 'o1', 'o3', 'o4',
-      'claude', 'gemini', 'deepseek', 'qwen', 'llama',
-      'mistral', 'mixtral', 'yi-', 'glm', 'doubao'
-    ];
-
-    function getPriority(m) {
-      const lower = m.toLowerCase();
-      for (let i = 0; i < priorityPrefixes.length; i++) {
-        if (lower.includes(priorityPrefixes[i])) return i;
-      }
-      return priorityPrefixes.length;
-    }
-
-    models.sort((a, b) => {
-      const pa = getPriority(a);
-      const pb = getPriority(b);
-      if (pa !== pb) return pa - pb;
-      return a.toLowerCase().localeCompare(b.toLowerCase());
-    });
-
-    if (models.length === 0) {
-      showToast('未拉取到聊天模型，请手动输入', 'info');
-      return;
-    }
-
-    const filteredCount = rawModels.length - models.length;
-    sel.innerHTML = '<option value="">-- 选择模型 (' + models.length + '个聊天模型' + (filteredCount > 0 ? '，已过滤' + filteredCount + '个非聊天模型' : '') + ') --</option>'
-      + models.map(m => `<option value="${m}">${m}</option>`).join('');
+    sel.innerHTML = '<option value="">-- 选择模型（共' + rawModels.length + '个）--</option>'
+      + rawModels.map(m => `<option value="${m}">${m}</option>`).join('');
     sel.style.display = 'block';
-    showToast(`拉取 ${rawModels.length} 个模型，筛选出 ${models.length} 个聊天模型`, 'success');
+    showToast('成功拉取 ' + rawModels.length + ' 个模型', 'success');
   } catch (err) {
     showToast('拉取失败: ' + err.message, 'error');
     console.error('Fetch models error:', err);
