@@ -1172,6 +1172,20 @@ input, textarea, select { font-family: inherit; outline: none; }
   :root { --conv-list-w: 200px; }
 }
 
+/* ===== Brain Page (智脑) ===== */
+.brain-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.brain-chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg);
+}
+
 /* ===== Error Log Page ===== */
 .errorlog-page {
   flex: 1;
@@ -1674,6 +1688,10 @@ input, textarea, select { font-family: inherit; outline: none; }
         <span class="icon">📚</span>
         <span>卡片库</span>
       </button>
+      <button class="nav-item" data-page="brain">
+        <span class="icon">💬</span>
+        <span>智脑</span>
+      </button>
       <button class="nav-item" data-page="settings">
         <span class="icon">⚙️</span>
         <span>API / 人设</span>
@@ -1849,6 +1867,37 @@ input, textarea, select { font-family: inherit; outline: none; }
     </div>
   </div>
 
+  <!-- ===== Brain Page (智脑) ===== -->
+  <div class="page" id="page-brain">
+    <div class="brain-layout">
+      <div class="conv-list" id="brainConvList">
+        <div class="conv-list-header">
+          <span>💬 智脑对话</span>
+          <button class="btn-new-chat" id="btnNewBrainConv">+ 新建</button>
+        </div>
+        <div class="conv-list-items" id="brainConvItems"></div>
+      </div>
+      <div class="brain-chat-area" id="brainChatArea">
+        <div class="chat-settings-bar" style="justify-content:flex-start;">
+          <span class="toolbar-label">API</span>
+          <select id="brainApiSelect"></select>
+        </div>
+        <div class="messages-container" id="brainMessagesContainer">
+          <div class="empty-state">
+            <div class="icon">💬</div>
+            <p>选择或新建一个对话<br>AI 将自由回答，无系统限制</p>
+          </div>
+        </div>
+        <div class="chat-input-resize-handle" id="brainInputResizeHandle"></div>
+        <div class="chat-input-area" id="brainChatInputArea">
+          <textarea id="brainChatInput" placeholder="输入消息，Shift+Enter 发送，Enter 换行..." rows="2"></textarea>
+          <button class="btn-send" id="btnBrainSend" disabled>发送</button>
+          <button class="btn-stop-generate" id="btnBrainStopGenerate" style="display:none;" onclick="stopBrainGeneration()">⏹ 停止</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 
@@ -2009,6 +2058,10 @@ input, textarea, select { font-family: inherit; outline: none; }
     <span class="mobile-tab-icon">📚</span>
     <span class="mobile-tab-label">卡片库</span>
   </button>
+  <button class="mobile-tab" data-mtab="brain" onclick="switchMobileTab('brain')">
+    <span class="mobile-tab-icon">💬</span>
+    <span class="mobile-tab-label">智脑</span>
+  </button>
   <button class="mobile-tab" data-mtab="settings" onclick="switchMobileTab('settings')">
     <span class="mobile-tab-icon">⚙️</span>
     <span class="mobile-tab-label">设置</span>
@@ -2020,7 +2073,7 @@ input, textarea, select { font-family: inherit; outline: none; }
 // ===== IndexedDB Wrapper =====
 // ============================================================
 const DB_NAME = 'SillyTavernCardWriter';
-const DB_VERSION = 9;
+const DB_VERSION = 10;
 
 let db = null;
 
@@ -2039,6 +2092,7 @@ function openDB() {
       if (!db.objectStoreNames.contains('conversations')) {
         db.createObjectStore('conversations', { keyPath: 'id', autoIncrement: true });
       }
+      if (!db.objectStoreNames.contains('brainConversations')) { db.createObjectStore('brainConversations', { keyPath: 'id', autoIncrement: true }); }
       if (!db.objectStoreNames.contains('cards')) {
         db.createObjectStore('cards', { keyPath: 'id', autoIncrement: true });
       }
@@ -3330,7 +3384,12 @@ const state = {
   currentConversation: null,
   currentCardData: null,
   editingCardId: null,
-  cardRequested: false,   // true only when user clicked generate button
+  cardRequested: false,
+  brainConvId: null,
+  brainConversation: null,
+  brainGenerating: false,
+  brainGeneratingForId: null,
+  brainRequested: false,   // true only when user clicked generate button
   generatingForConvId: null, // lock: which conversation is AI generating for
   personaName: 'AI 助手',  // cached persona name for display
   editingMessageIdx: -1,   // which message is being edited inline
@@ -3476,12 +3535,14 @@ function switchPage(page) {
 
   if (page === 'cards') renderCardsPage();
   if (page === 'settings') renderSettingsPage();
+  if (page === 'brain') renderBrainPage();
   if (page === 'errorlog') renderErrorLogPage();
 
   // Sync mobile tabs (mobile only)
   if (window.innerWidth <= 768) {
     if (page === 'cards') switchMobileTab('cards');
     else if (page === 'settings') switchMobileTab('settings');
+    else if (page === 'brain') switchMobileTab('brain');
     else if (page === 'chat') switchMobileTab('chat');
   }
 }
@@ -3868,6 +3929,7 @@ async function savePersona() {
     }
     hidePersonaModal();
     await refreshPersonaSelects();
+  await refreshBrainApiSelect();
     renderSettingsPage();
   } catch (err) {
     showToast('保存失败: ' + err.message, 'error');
@@ -5715,6 +5777,10 @@ document.getElementById('btnNewChat').addEventListener('click', () => createConv
 document.getElementById('btnSend').addEventListener('click', sendMessage);
 document.getElementById('btnSaveCard').addEventListener('click', saveCard);
 document.getElementById('btnGenerateFromChat').addEventListener('click', triggerGenerateFromChat);
+document.getElementById('btnNewBrainConv').addEventListener('click', () => createBrainConversation());
+document.getElementById('btnBrainSend').addEventListener('click', sendBrainMessage);
+document.getElementById('brainChatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); sendBrainMessage(); } });
+
 
 // Chat input: Shift+Enter to send, Enter for newline
 document.getElementById('chatInput').addEventListener('keydown', (e) => {
