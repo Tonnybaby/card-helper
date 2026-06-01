@@ -5441,6 +5441,306 @@ function extractCharaFromPNG(bytes) {
 }
 
 // ============================================================
+
+// ============================================================
+// ===== Brain (智脑) Functions =====
+// ============================================================
+async function loadBrainConversation(id) {
+  const conv = await dbGet('brainConversations', Number(id));
+  if (!conv) return;
+  state.brainConvId = conv.id;
+  state.brainConversation = conv;
+  if (conv.apiConfigId != null) document.getElementById('brainApiSelect').value = conv.apiConfigId;
+  renderBrainMessages();
+  renderBrainConvList();
+  document.getElementById('btnBrainSend').disabled = false;
+}
+
+async function createBrainConversation() {
+  const apiConfigId = document.getElementById('brainApiSelect').value;
+  if (!apiConfigId) { showToast('请先选择 API 配置', 'error'); return; }
+  const conv = { title: '新问答', apiConfigId: Number(apiConfigId), messages: [], createdAt: Date.now(), updatedAt: Date.now() };
+  const id = await dbAdd('brainConversations', conv);
+  conv.id = Number(id);
+  state.brainConvId = conv.id;
+  state.brainConversation = conv;
+  renderBrainMessages();
+  renderBrainConvList();
+  document.getElementById('btnBrainSend').disabled = false;
+  document.getElementById('brainChatInput').focus();
+  showToast('新智脑对话已创建', 'success');
+}
+
+async function deleteBrainConversation(id) {
+  showConfirm('确定要删除这条智脑对话吗？', async () => {
+    await dbDelete('brainConversations', id);
+    if (state.brainConvId === id) { state.brainConvId = null; state.brainConversation = null; renderBrainMessages(); document.getElementById('btnBrainSend').disabled = true; }
+    renderBrainConvList();
+    showToast('对话已删除', 'success');
+  });
+}
+
+async function renderBrainConvList() {
+  const convs = await dbGetAll('brainConversations');
+  convs.sort((a, b) => b.updatedAt - a.updatedAt);
+  const container = document.getElementById('brainConvItems');
+  if (!container) return;
+  if (convs.length === 0) {
+    container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-secondary);font-size:13px;">暂无智脑对话</div>';
+    return;
+  }
+  container.innerHTML = convs.map(c => '<div class="conv-item' + (c.id === state.brainConvId ? ' active' : '') + '" data-cid="' + c.id + '" onclick="loadBrainConversation(' + c.id + ')"><div class="conv-item-title">' + escHtml(c.title) + '<span class="conv-edit-icon" onclick="startRenameBrainConv(' + c.id + ', event)" title="重命名">✏️</span></div><div class="conv-item-meta"><span>' + c.messages.filter(m => !m.hidden).length + ' 条消息</span></div><div class="conv-item-actions"><button onclick="event.stopPropagation();deleteBrainConversation(' + c.id + ')">🗑️ 删除</button></div></div>').join('');
+}
+
+function startRenameBrainConv(id, event) {
+  event.stopPropagation();
+  const item = document.querySelector('.conv-item[data-cid="' + id + '"]');
+  if (!item) return;
+  const titleEl = item.querySelector('.conv-item-title');
+  const current = titleEl.textContent.replace('✏️', '').trim();
+  titleEl.innerHTML = '<input class="conv-edit-input" value="' + escHtml(current) + '" id="renameBrainInput_' + id + '" onkeydown="if(event.key===\'Enter\')saveRenameBrainConv(' + id + ')" onclick="event.stopPropagation()">';
+  setTimeout(() => { document.getElementById('renameBrainInput_' + id).focus(); document.getElementById('renameBrainInput_' + id).select(); }, 10);
+}
+
+async function saveRenameBrainConv(id) {
+  const input = document.getElementById('renameBrainInput_' + id);
+  if (!input) return;
+  const newTitle = input.value.trim();
+  if (!newTitle) { renderBrainConvList(); return; }
+  const conv = await dbGet('brainConversations', id);
+  if (conv) { conv.title = newTitle; conv.updatedAt = Date.now(); await dbPut('brainConversations', conv); }
+  if (state.brainConvId === id && state.brainConversation) { state.brainConversation.title = newTitle; }
+  renderBrainConvList();
+}
+
+function renderBrainMessages() {
+  const container = document.getElementById('brainMessagesContainer');
+  const conv = state.brainConversation;
+  if (!conv || conv.messages.filter(m => !m.hidden).length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">💬</div><p>' + (conv ? '开始对话吧！AI 将自由回答' : '选择或新建一个智脑对话') + '</p></div>';
+    return;
+  }
+  const editingIdx = state._brainEditMode ? state.editingMessageIdx : -1;
+  container.innerHTML = conv.messages.filter(m => !m.hidden).map((m, idx) => {
+    const isUser = m.role === 'user';
+    if (idx === editingIdx) {
+      return '<div class="message ' + (isUser ? 'user' : 'ai') + '"><div class="message-avatar">' + (isUser ? '👤' : '🤖') + '</div><div style="flex:1;min-width:0;"><textarea class="message-edit-input" id="editMsg_' + idx + '" rows="4">' + escHtml(m.content) + '</textarea><div class="message-edit-actions"><button class="btn-save-edit" onclick="saveBrainMessageEdit(' + idx + ')">✓ ' + (isUser ? '确认并重问AI' : '保存修改') + '</button><button class="btn-cancel-edit" onclick="cancelBrainMessageEdit()">取消</button></div></div></div>';
+    }
+    return '<div class="message ' + (isUser ? 'user' : 'ai') + '"><div class="message-avatar">' + (isUser ? '👤' : '🤖') + '</div><div style="flex:1;min-width:0;">' + (isUser ? '' : '<div class="message-role">AI</div>') + '<div class="message-bubble">' + renderMarkdown(m.content) + '</div><div class="message-actions">' + (isUser ? '' : '<button onclick="regenerateBrainMessage(' + idx + ')" title="重新生成">🔄</button>') + '<button onclick="editBrainMessage(' + idx + ')" title="编辑">✏️</button><button onclick="deleteBrainMessage(' + idx + ')" title="删除">🗑️</button><button onclick="copyBrainMessage(' + idx + ')" title="复制">📋</button></div></div></div>';
+  }).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+function editBrainMessage(idx) {
+  if (state.brainGenerating) return;
+  const conv = state.brainConversation;
+  if (!conv || idx >= conv.messages.length) return;
+  state.editingMessageIdx = idx;
+  state._brainEditMode = true;
+  renderBrainMessages();
+  requestAnimationFrame(() => { const ta = document.getElementById('editMsg_' + idx); if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } });
+}
+
+async function saveBrainMessageEdit(idx) {
+  const conv = state.brainConversation;
+  if (!conv) return;
+  const ta = document.getElementById('editMsg_' + idx);
+  if (!ta) return;
+  const newContent = ta.value.trim();
+  if (!newContent) { showToast('消息不能为空', 'error'); return; }
+  const isUserMessage = conv.messages[idx].role === 'user';
+  conv.messages[idx].content = newContent;
+  if (isUserMessage) {
+    conv.messages = conv.messages.slice(0, idx + 1);
+    conv.updatedAt = Date.now();
+    state.editingMessageIdx = -1;
+    state._brainEditMode = false;
+    renderBrainMessages();
+    await dbPut('brainConversations', conv);
+    await resendBrainToAI();
+  } else {
+    conv.updatedAt = Date.now();
+    state.editingMessageIdx = -1;
+    state._brainEditMode = false;
+    renderBrainMessages();
+    await dbPut('brainConversations', conv);
+    showToast('AI 消息已修改', 'success');
+  }
+}
+
+function cancelBrainMessageEdit() { state.editingMessageIdx = -1; state._brainEditMode = false; renderBrainMessages(); }
+
+function deleteBrainMessage(idx) {
+  if (state.brainGenerating) return;
+  const conv = state.brainConversation;
+  if (!conv) return;
+  showConfirm('确定删除这条消息及之后的所有对话吗？', async () => {
+    conv.messages = conv.messages.slice(0, idx);
+    conv.updatedAt = Date.now();
+    await dbPut('brainConversations', conv);
+    renderBrainMessages();
+  });
+}
+
+function copyBrainMessage(idx) {
+  const conv = state.brainConversation;
+  if (!conv) return;
+  const msg = conv.messages[idx];
+  if (!msg) return;
+  navigator.clipboard.writeText(msg.content).then(() => showToast('已复制到剪贴板', 'success'));
+}
+
+async function regenerateBrainMessage(idx) {
+  if (state.brainGenerating) return;
+  const conv = state.brainConversation;
+  if (!conv) return;
+  conv.messages = conv.messages.slice(0, idx);
+  conv.updatedAt = Date.now();
+  renderBrainMessages();
+  await dbPut('brainConversations', conv);
+  await resendBrainToAI();
+}
+
+async function resendBrainToAI() {
+  const conv = state.brainConversation;
+  if (!conv) return;
+  const apiConfigId = document.getElementById('brainApiSelect').value;
+  if (!apiConfigId) { showToast('请选择 API 配置', 'error'); return; }
+  state.brainGeneratingForId = conv.id;
+  document.getElementById('btnBrainSend').disabled = true;
+  document.getElementById('btnBrainStopGenerate').style.display = 'inline-block';
+  state.brainGenerating = true;
+  const msgContainer = document.getElementById('brainMessagesContainer');
+  const typingEl = document.createElement('div');
+  typingEl.className = 'message ai';
+  typingEl.id = 'brainTypingIndicator';
+  typingEl.innerHTML = '<div class="message-avatar">🤖</div><div class="message-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>';
+  msgContainer.appendChild(typingEl);
+  msgContainer.scrollTop = msgContainer.scrollHeight;
+  abortController = new AbortController();
+  try {
+    const response = await callBrainAI(apiConfigId, conv.messages, abortController.signal);
+    const ti = document.getElementById('brainTypingIndicator');
+    if (ti) ti.remove();
+    appendBrainMessage('assistant', response);
+  } catch (err) {
+    const ti = document.getElementById('brainTypingIndicator');
+    if (ti) ti.remove();
+    if (err.name !== 'AbortError') { showToast('发送失败: ' + err.message, 'error'); }
+  }
+  abortController = null;
+  state.brainGenerating = false;
+  state.brainGeneratingForId = null;
+  document.getElementById('btnBrainSend').disabled = false;
+  document.getElementById('btnBrainStopGenerate').style.display = 'none';
+}
+
+function appendBrainMessage(role, content, hidden) {
+  if (!state.brainConversation) return;
+  if (state.brainGeneratingForId && state.brainConvId !== state.brainGeneratingForId && role === 'assistant') return;
+  state.brainConversation.messages.push({ role, content, hidden: hidden || false, timestamp: Date.now() });
+  state.brainConversation.updatedAt = Date.now();
+  renderBrainMessages();
+  if (state.brainConversation.id) dbPut('brainConversations', state.brainConversation);
+}
+
+async function sendBrainMessage() {
+  if (state.brainGenerating) return;
+  const input = document.getElementById('brainChatInput');
+  const content = input.value.trim();
+  if (!content) return;
+  const conv = state.brainConversation;
+  if (!conv) { showToast('请先新建智脑对话', 'error'); return; }
+  const apiConfigId = document.getElementById('brainApiSelect').value;
+  if (!apiConfigId) { showToast('请选择 API 配置', 'error'); return; }
+  conv.apiConfigId = Number(apiConfigId);
+  await dbPut('brainConversations', conv);
+  state.brainGeneratingForId = conv.id;
+  input.value = '';
+  document.getElementById('btnBrainSend').disabled = true;
+  document.getElementById('btnBrainStopGenerate').style.display = 'inline-block';
+  state.brainGenerating = true;
+  appendBrainMessage('user', content);
+  const msgContainer = document.getElementById('brainMessagesContainer');
+  const typingEl = document.createElement('div');
+  typingEl.className = 'message ai';
+  typingEl.id = 'brainTypingIndicator';
+  typingEl.innerHTML = '<div class="message-avatar">🤖</div><div class="message-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>';
+  msgContainer.appendChild(typingEl);
+  msgContainer.scrollTop = msgContainer.scrollHeight;
+  abortController = new AbortController();
+  try {
+    const response = await callBrainAI(apiConfigId, conv.messages, abortController.signal);
+    const ti = document.getElementById('brainTypingIndicator');
+    if (ti) ti.remove();
+    appendBrainMessage('assistant', response);
+  } catch (err) {
+    const ti = document.getElementById('brainTypingIndicator');
+    if (ti) ti.remove();
+    if (err.name !== 'AbortError') { showToast('发送失败: ' + err.message, 'error'); }
+  }
+  abortController = null;
+  state.brainGenerating = false;
+  state.brainGeneratingForId = null;
+  document.getElementById('btnBrainSend').disabled = false;
+  document.getElementById('btnBrainStopGenerate').style.display = 'none';
+  document.getElementById('brainChatInput').focus();
+}
+
+async function callBrainAI(apiConfigId, messages, signal) {
+  const apiConfig = await dbGet('apiConfigs', Number(apiConfigId));
+  if (!apiConfig) throw new Error('未找到 API 配置');
+  const chatMessages = messages.filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({ role: m.role, content: m.content }));
+  if (apiConfig.provider === 'anthropic') {
+    return callAnthropicBrain(apiConfig, chatMessages, signal);
+  } else {
+    return callOpenAIBrain(apiConfig, chatMessages, signal);
+  }
+}
+
+async function callOpenAIBrain(config, messages, signal) {
+  const url = config.endpoint + '/chat/completions';
+  const headers = { 'Content-Type': 'application/json' };
+  if (config.apiKey) headers['Authorization'] = 'Bearer ' + config.apiKey;
+  const response = await fetch(url, { method: 'POST', headers, signal, body: JSON.stringify({ model: config.model, messages, temperature: 0.8, max_tokens: 32000 }) });
+  if (!response.ok) { const errText = await response.text(); throw new Error('API 错误 (' + response.status + '): ' + errText); }
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+async function callAnthropicBrain(config, messages, signal) {
+  const url = config.endpoint + '/messages';
+  const headers = { 'Content-Type': 'application/json', 'x-api-key': config.apiKey, 'anthropic-version': '2023-06-01' };
+  const body = { model: config.model, max_tokens: 32000, messages };
+  const response = await fetch(url, { method: 'POST', headers, signal, body: JSON.stringify(body) });
+  if (!response.ok) { const errText = await response.text(); throw new Error('Anthropic API 错误 (' + response.status + '): ' + errText); }
+  const data = await response.json();
+  return data.content[0].text;
+}
+
+function stopBrainGeneration() {
+  if (abortController) { abortController.abort(); abortController = null; }
+  state.brainGenerating = false;
+  state.brainGeneratingForId = null;
+  document.getElementById('btnBrainSend').disabled = false;
+  document.getElementById('btnBrainStopGenerate').style.display = 'none';
+  const ti = document.getElementById('brainTypingIndicator');
+  if (ti) ti.remove();
+  showToast('已停止生成', 'info');
+}
+
+async function refreshBrainApiSelect() {
+  const configs = await dbGetAll('apiConfigs');
+  const sel = document.getElementById('brainApiSelect');
+  if (!sel) return;
+  sel.innerHTML = configs.length === 0 ? '<option value="">-- 请先添加 API 配置 --</option>' : configs.map(c => '<option value="' + c.id + '">' + c.name + ' (' + c.model + ')</option>').join('');
+}
+
+async function renderBrainPage() {
+  await refreshBrainApiSelect();
+  await renderBrainConvList();
+}
+
 // ===== Panel Collapse (bidirectional) =====
 // ============================================================
 function toggleCollapsePanel(name) {
