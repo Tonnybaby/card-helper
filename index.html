@@ -8,24 +8,24 @@
 <style>
 /* ===== CSS Variables & Reset ===== */
 :root {
-  --primary: #D81B60;
-  --primary-light: #FCE4EC;
-  --primary-dark: #AD1457;
-  --primary-soft: #FFF0F4;
-  --bg: #FFFBF9;
+  --primary: #FF85A2;
+  --primary-light: #FFE8F0;
+  --primary-dark: #E8617C;
+  --primary-soft: #FFF2F6;
+  --bg: #FFFAFC;
   --bg-card: #FFFFFF;
-  --text: #3E2723;
-  --text-secondary: #8D6E7B;
-  --border: #F2DCE6;
-  --danger: #E53935;
-  --danger-hover: #C62828;
-  --success: #66BB6A;
-  --warning: #FFA726;
-  --accent: #F06292;
-  --shadow: 0 2px 12px rgba(216,27,96,0.06);
-  --shadow-lg: 0 6px 24px rgba(216,27,96,0.10);
-  --radius: 14px;
-  --radius-sm: 10px;
+  --text: #4A3638;
+  --text-secondary: #B08898;
+  --border: #F5D5E0;
+  --danger: #FF6B6B;
+  --danger-hover: #E55A5A;
+  --success: #7BC8A4;
+  --warning: #FFB347;
+  --accent: #FFB3C6;
+  --shadow: 0 2px 12px rgba(255,133,162,0.07);
+  --shadow-lg: 0 6px 24px rgba(255,133,162,0.11);
+  --radius: 16px;
+  --radius-sm: 12px;
   --sidebar-w: 200px;
   --conv-list-w: 260px;
   --preview-w: 340px;
@@ -53,7 +53,7 @@ input, textarea, select { font-family: inherit; outline: none; }
 /* ===== Sidebar ===== */
 .sidebar {
   width: var(--sidebar-w);
-  background: linear-gradient(180deg, #FFF0F4 0%, #FFFBF9 100%);
+  background: linear-gradient(180deg, var(--primary-soft) 0%, var(--bg) 100%);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -153,14 +153,14 @@ input, textarea, select { font-family: inherit; outline: none; }
 /* ===== Global Top Bar ===== */
 .global-topbar {
   height: 52px;
-  background: linear-gradient(90deg, #FCE4EC 0%, #FFFBF9 50%, #FCE4EC 100%);
+  background: linear-gradient(90deg, var(--primary-light) 0%, var(--bg) 50%, var(--primary-light) 100%);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   padding: 0 20px;
   gap: 14px;
   flex-shrink: 0;
-  box-shadow: 0 1px 0 rgba(216,27,96,0.06);
+  box-shadow: 0 1px 0 rgba(255,133,162,0.04);
 }
 .topbar-brand {
   display: flex;
@@ -219,7 +219,7 @@ input, textarea, select { font-family: inherit; outline: none; }
   align-items: center;
   gap: 8px;
   padding: 6px 14px;
-  background: linear-gradient(180deg, #FFF0F4, #FCE4EC);
+  background: linear-gradient(180deg, var(--primary-soft), var(--primary-light));
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -285,16 +285,16 @@ input, textarea, select { font-family: inherit; outline: none; }
 }
 
 .btn-new-chat {
-  background: #C2185B;
+  background: var(--primary);
   color: #fff;
   padding: 8px 18px;
   border-radius: 20px;
   font-size: 13px;
   font-weight: 700;
   transition: all var(--transition);
-  box-shadow: 0 2px 8px rgba(194,24,91,0.25);
+  box-shadow: 0 2px 8px rgba(255,133,162,0.25);
 }
-.btn-new-chat:hover { background: #AD1457; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(194,24,91,0.35); }
+.btn-new-chat:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(255,133,162,0.35); }
 .btn-new-chat:active { transform: scale(0.95); }
 
 .conv-list-items {
@@ -391,8 +391,8 @@ input, textarea, select { font-family: inherit; outline: none; }
   font-size: 16px;
   flex-shrink: 0;
 }
-.message.ai .message-avatar { background: #ffe0ec; }
-.message.user .message-avatar { background: #ffe4e1; }
+.message.ai .message-avatar { background: var(--primary-light); }
+.message.user .message-avatar { background: #FFE8EE; }
 
 .message-bubble {
   padding: 12px 16px;
@@ -410,10 +410,10 @@ input, textarea, select { font-family: inherit; outline: none; }
 }
 
 .message.user .message-bubble {
-  background: linear-gradient(135deg, #D81B60, #C2185B);
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: #fff;
   border-top-right-radius: 4px;
-  box-shadow: 0 2px 8px rgba(216,27,96,0.15);
+  box-shadow: 0 2px 8px rgba(255,133,162,0.15);
 }
 
 .message-bubble pre {
@@ -463,11 +463,11 @@ input, textarea, select { font-family: inherit; outline: none; }
   resize: none;
   transition: border var(--transition);
 }
-.chat-input-area textarea:focus { border-color: #D81B60; box-shadow: 0 0 0 3px rgba(216,27,96,0.08); }
-.preview-form input:focus, .preview-form textarea:focus { border-color: #D81B60; box-shadow: 0 0 0 3px rgba(216,27,96,0.08); }
+.chat-input-area textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255,133,162,0.12); }
+.preview-form input:focus, .preview-form textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255,133,162,0.12); }
 
 .btn-send {
-  background: #C2185B;
+  background: var(--primary);
   color: #fff;
   padding: 10px 22px;
   border-radius: var(--radius-sm);
@@ -476,12 +476,12 @@ input, textarea, select { font-family: inherit; outline: none; }
   transition: all var(--transition);
   white-space: nowrap;
 }
-.btn-send:hover:not(:disabled) { background: #AD1457; transform: translateY(-1px); }
+.btn-send:hover:not(:disabled) { background: var(--primary-dark); transform: translateY(-1px); }
 .btn-send:active:not(:disabled) { transform: scale(0.95); }
-.btn-send:disabled { background: #F8BBD0; color: #FCE4EC; cursor: not-allowed; }
+.btn-send:disabled { background: var(--primary-light); color: var(--primary-soft); cursor: not-allowed; }
 
 .btn-generate-from-chat {
-  background: #C2185B;
+  background: var(--primary);
   color: #fff;
   padding: 14px 24px;
   border-radius: 24px;
@@ -491,14 +491,14 @@ input, textarea, select { font-family: inherit; outline: none; }
   transition: all var(--transition);
   white-space: nowrap;
   border: none;
-  box-shadow: 0 3px 12px rgba(194,24,91,0.3);
+  box-shadow: 0 3px 12px rgba(255,133,162,0.3);
   letter-spacing: 0.5px;
   width: 100%;
 }
 .btn-generate-from-chat:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(194,24,91,0.45);
-  background: #AD1457;
+  box-shadow: 0 6px 20px rgba(255,133,162,0.45);
+  background: var(--primary-dark);
 }
 .btn-generate-from-chat:active { transform: scale(0.97); }
 
@@ -574,7 +574,7 @@ input, textarea, select { font-family: inherit; outline: none; }
   font-size: 13px;
   transition: border var(--transition);
 }
-.preview-form input:focus, .preview-form textarea:focus { border-color: #D81B60; box-shadow: 0 0 0 3px rgba(216,27,96,0.08); }
+.preview-form input:focus, .preview-form textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255,133,162,0.12); }
 .preview-form textarea { min-height: 60px; resize: vertical; }
 
 .field-hint {
@@ -586,7 +586,7 @@ input, textarea, select { font-family: inherit; outline: none; }
 }
 
 .btn-save-card {
-  background: linear-gradient(135deg, #D81B60, #C2185B);
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: #fff;
   padding: 12px 22px;
   border-radius: 24px;
@@ -594,10 +594,25 @@ input, textarea, select { font-family: inherit; outline: none; }
   font-weight: 700;
   width: 100%;
   transition: all var(--transition);
-  box-shadow: 0 3px 12px rgba(194,24,91,0.25);
+  box-shadow: 0 3px 12px rgba(255,133,162,0.25);
 }
-.btn-save-card:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(194,24,91,0.4); }
+.btn-save-card:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(255,133,162,0.4); }
 .btn-save-card:active { transform: scale(0.96); }
+
+/* Candy gloss effect for primary action buttons */
+.btn-new-chat, .btn-send, .btn-generate-from-chat, .btn-save-card {
+  position: relative;
+  overflow: hidden;
+}
+.btn-new-chat::after, .btn-send::after, .btn-generate-from-chat::after, .btn-save-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, transparent 100%);
+  border-radius: inherit;
+  pointer-events: none;
+}
 
 .btn-trigger-card {
   background: var(--warning);
@@ -607,7 +622,7 @@ input, textarea, select { font-family: inherit; outline: none; }
   font-size: 12px;
   transition: all var(--transition);
 }
-.btn-trigger-card:hover { background: #d68910; }
+.btn-trigger-card:hover { background: #e69520; }
 
 /* ===== Cards Page ===== */
 .cards-page {
@@ -1358,12 +1373,12 @@ input, textarea, select { font-family: inherit; outline: none; }
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #F2DCE6; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #D81B60; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
 /* Fetch models button */
 .btn-fetch-models {
-  background: #f0f7fa;
+  background: var(--primary-soft);
   border: 1px solid var(--primary);
   color: var(--primary-dark);
   padding: 8px 14px;
@@ -1692,6 +1707,77 @@ input, textarea, select { font-family: inherit; outline: none; }
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-secondary);
+}
+
+/* ===== Decorative Elements (Sakura Theme) ===== */
+/* Subtle petal texture on body */
+body::before {
+  content: '';
+  position: fixed;
+  top: -10%;
+  left: 0;
+  width: 100%;
+  height: 120%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.04;
+  background:
+    radial-gradient(circle at 20% 30%, #FFB3C6 2px, transparent 2px),
+    radial-gradient(circle at 50% 60%, #FF85A2 2.5px, transparent 2.5px),
+    radial-gradient(circle at 75% 20%, #FFB3C6 2px, transparent 2px),
+    radial-gradient(circle at 10% 70%, #FFD1DC 3px, transparent 3px),
+    radial-gradient(circle at 60% 10%, #FF85A2 2px, transparent 2px),
+    radial-gradient(circle at 85% 80%, #FFD1DC 2.5px, transparent 2.5px),
+    radial-gradient(circle at 35% 50%, #FFB3C6 2px, transparent 2px),
+    radial-gradient(circle at 90% 45%, #FF85A2 2px, transparent 2px);
+  background-size: 200px 200px;
+  animation: petalDrift 30s linear infinite;
+}
+
+@keyframes petalDrift {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(-200px) rotate(360deg); }
+}
+
+/* Top bar shimmer accent line */
+.global-topbar {
+  position: relative;
+}
+.global-topbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--primary-light) 20%,
+    var(--accent) 50%,
+    var(--primary-light) 80%,
+    transparent 100%
+  );
+  opacity: 0.6;
+}
+
+/* Card hover sheen effect */
+.card-item {
+  overflow: hidden;
+}
+.card-item::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transform: skewX(-15deg);
+  transition: left 0.6s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+.card-item:hover::before {
+  left: 150%;
 }
 </style>
 </head>
@@ -4446,7 +4532,7 @@ function renderMessages() {
     if (cardData && !isEditing) {
       contentHtml = contentHtml.replace(
         /\[CHARACTER_CARD\][\s\S]*\[\/CHARACTER_CARD\]/g,
-        '<div style="background:#e8f5e9;border:1px solid #a5d6a7;padding:10px;border-radius:6px;margin:8px 0;font-size:12px;">✅ 角色卡已生成！请在右侧面板预览和编辑</div>'
+        '<div style="background:#EDF7F0;border:1px solid #B8DBC0;padding:10px;border-radius:6px;margin:8px 0;font-size:12px;">✅ 角色卡已生成！请在右侧面板预览和编辑</div>'
       );
     }
 
@@ -5070,8 +5156,8 @@ async function exportCardPNG(id) {
 
   // Background gradient
   const gradient = ctx.createLinearGradient(0, 0, 400, 600);
-  gradient.addColorStop(0, '#7ec8e3');
-  gradient.addColorStop(1, '#3a7cc3');
+  gradient.addColorStop(0, '#FFB3C6');
+  gradient.addColorStop(1, '#FF85A2');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 400, 600);
 
