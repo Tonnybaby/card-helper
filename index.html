@@ -5878,7 +5878,7 @@ async function handleBrainFiles(event) {
 
     if (file.size > maxSize) { showToast('文件 ' + file.name + ' 超出大小限制 (' + (maxSize/1024/1024).toFixed(1) + 'MB)', 'error'); continue; }
 
-    const att = { name: file.name, size: file.size, type: ext, loading: true };
+    const att = { name: file.name, size: file.size, type: ext, loading: true, isImage: false, isText: false };
     brainAttachments.push(att);
     renderBrainAttachments();
 
@@ -6428,7 +6428,7 @@ async function init() {
   });
 
   // Show update banner (once per session)
-  if (!localStorage.getItem('bannerDismissed_v4')) {
+  localStorage.setItem('bannerDismissed_v4', '1'); if (false) {
     document.getElementById('updateBanner').classList.remove('hidden');
   }
 
