@@ -1962,7 +1962,7 @@ input, textarea, select { font-family: inherit; outline: none; }
         <div class="chat-input-resize-handle" id="brainInputResizeHandle"></div>
         <div class="brain-attach-preview" id="brainAttachPreview" style="display:none;"></div>
         <div class="chat-input-area" id="brainChatInputArea">
-          <input type="file" id="brainFileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.md,.json,.csv" multiple style="display:none;" onchange="handleBrainFiles(event)">
+          <input type="file" id="brainFileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.md,.json,.csv,.html,.htm,.js,.css,.xml,.yaml,.yml,.log" multiple style="display:none;" onchange="handleBrainFiles(event)">
           <button class="btn-attach" id="btnBrainAttach" onclick="document.getElementById('brainFileInput').click()" title="添加附件">📎</button>
           <textarea id="brainChatInput" placeholder="输入消息，Shift+Enter 发送，Enter 换行..." rows="2"></textarea>
           <button class="btn-send" id="btnBrainSend" disabled>发送</button>
@@ -5859,11 +5859,11 @@ async function renderBrainPage() {
 // ===== Brain Attachment Functions =====
 const brainAttachments = [];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-const MAX_DOC_SIZE = 2 * 1024 * 1024;
+const MAX_DOC_SIZE = 5 * 1024 * 1024;
 const MAX_ATTACHMENTS = 5;
 
 const IMG_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-const DOC_EXTS = ['txt', 'md', 'json', 'csv', 'pdf'];
+const DOC_EXTS = ['txt', 'md', 'json', 'csv', 'pdf', 'html', 'htm', 'js', 'css', 'xml', 'yaml', 'yml', 'log'];
 
 async function handleBrainFiles(event) {
   const files = event.target.files;
