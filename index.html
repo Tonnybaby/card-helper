@@ -2028,6 +2028,8 @@ body::before {
         <div class="chat-settings-bar" style="justify-content:flex-start;">
           <span class="toolbar-label">API</span>
           <select id="brainApiSelect"></select>
+          <span class="toolbar-label">人设</span>
+          <select id="brainPersonaSelect"></select>
         </div>
         <div class="messages-container" id="brainMessagesContainer">
           <div class="empty-state">
@@ -4029,7 +4031,8 @@ async function savePersona() {
     }
     hidePersonaModal();
     await refreshPersonaSelects();
-  await refreshBrainApiSelect();
+    await refreshBrainPersonaSelect();
+    await refreshBrainApiSelect();
     renderSettingsPage();
   } catch (err) {
     showToast('保存失败: ' + err.message, 'error');
@@ -4043,6 +4046,7 @@ async function deletePersona(id) {
     await dbDelete('aiPersonas', id);
     showToast('AI 人设已删除', 'success');
     await refreshPersonaSelects();
+    await refreshBrainPersonaSelect();
     renderSettingsPage();
   });
 }
@@ -5725,18 +5729,28 @@ async function callBrainAI(apiConfigId, messages, signal) {
   if (!apiConfig) throw new Error('未找到 API 配置');
   const chatMessages = messages.filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({ role: m.role, content: m.content }));
   console.log('[智脑 API] 实际发送 messages:', JSON.stringify(chatMessages.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content.substring(0, 200) : '[vision array]' }))));
+  // 读取人设选择
+  const personaId = document.getElementById('brainPersonaSelect')?.value;
+  let systemPrompt = null;
+  if (personaId) {
+    const persona = await dbGet('aiPersonas', Number(personaId));
+    if (persona) systemPrompt = persona.systemPrompt;
+  }
   if (apiConfig.provider === 'anthropic') {
-    return callAnthropicBrain(apiConfig, chatMessages, signal);
+    return callAnthropicBrain(apiConfig, chatMessages, signal, systemPrompt);
   } else {
-    return callOpenAIBrain(apiConfig, chatMessages, signal);
+    return callOpenAIBrain(apiConfig, chatMessages, signal, systemPrompt);
   }
 }
 
-async function callOpenAIBrain(config, messages, signal) {
+async function callOpenAIBrain(config, messages, signal, systemPrompt) {
   const url = config.endpoint + '/chat/completions';
   const headers = { 'Content-Type': 'application/json' };
   if (config.apiKey) headers['Authorization'] = 'Bearer ' + config.apiKey;
-  const body = JSON.stringify({ model: config.model, messages, temperature: 0.8, max_tokens: 32000 });
+  const allMessages = systemPrompt
+    ? [{ role: 'system', content: systemPrompt }, ...messages]
+    : messages;
+  const body = JSON.stringify({ model: config.model, messages: allMessages, temperature: 0.8, max_tokens: 32000 });
   console.log('[智脑 OpenAI] request body size:', body.length, 'chars');
   const response = await fetch(url, { method: 'POST', headers, signal, body });
   if (!response.ok) { const errText = await response.text(); throw new Error('API 错误 (' + response.status + '): ' + errText); }
@@ -5744,10 +5758,11 @@ async function callOpenAIBrain(config, messages, signal) {
   return data.choices[0].message.content;
 }
 
-async function callAnthropicBrain(config, messages, signal) {
+async function callAnthropicBrain(config, messages, signal, systemPrompt) {
   const url = config.endpoint + '/messages';
   const headers = { 'Content-Type': 'application/json', 'x-api-key': config.apiKey, 'anthropic-version': '2023-06-01' };
   const body = { model: config.model, max_tokens: 32000, messages };
+  if (systemPrompt) body.system = systemPrompt;
   console.log('[智脑 Anthropic] request body size:', JSON.stringify(body).length, 'chars');
   const response = await fetch(url, { method: 'POST', headers, signal, body: JSON.stringify(body) });
   if (!response.ok) { const errText = await response.text(); throw new Error('Anthropic API 错误 (' + response.status + '): ' + errText); }
@@ -5773,8 +5788,38 @@ async function refreshBrainApiSelect() {
   sel.innerHTML = configs.length === 0 ? '<option value="">-- 请先添加 API 配置 --</option>' : configs.map(c => '<option value="' + c.id + '">' + c.name + ' (' + c.model + ')</option>').join('');
 }
 
+async function refreshBrainPersonaSelect() {
+  const sel = document.getElementById('brainPersonaSelect');
+  if (!sel) return;
+  const personas = await dbGetAll('aiPersonas');
+  // 排序：系统人设按固定顺序，再用户人设
+  const systemOrder = ['ai写卡助手', '柚乃', '郭德纲'];
+  personas.sort((a, b) => {
+    const ai = systemOrder.indexOf(a.name);
+    const bi = systemOrder.indexOf(b.name);
+    if (ai >= 0 && bi >= 0) return ai - bi;
+    if (ai >= 0) return -1;
+    if (bi >= 0) return 1;
+    return 0;
+  });
+  // 默认「无人设」
+  let html = '<option value="">🌸 无人设（纯对话模式）</option>';
+  html += personas.map(p => '<option value="' + p.id + '">' + (p.avatar || '') + ' ' + p.name + '</option>').join('');
+  sel.innerHTML = html;
+  // 恢复 localStorage 中的人设选择
+  const saved = localStorage.getItem('qa_selected_persona');
+  if (saved !== null && Array.from(sel.options).some(o => o.value === saved)) {
+    sel.value = saved;
+  }
+  // 人设切换时保存
+  sel.addEventListener('change', () => {
+    localStorage.setItem('qa_selected_persona', sel.value);
+  });
+}
+
 async function renderBrainPage() {
   await refreshBrainApiSelect();
+  await refreshBrainPersonaSelect();
   await renderBrainConvList();
 }
 
