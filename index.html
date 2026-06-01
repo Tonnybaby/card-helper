@@ -5587,6 +5587,15 @@ async function saveRenameBrainConv(id) {
   renderBrainConvList();
 }
 
+function getDisplayText(content) {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    const textPart = content.find(p => p.type === "text");
+    return textPart ? textPart.text : "[图片消息]";
+  }
+  return String(content || "");
+}
+
 function renderBrainMessages() {
   const container = document.getElementById('brainMessagesContainer');
   const conv = state.brainConversation;
@@ -5600,7 +5609,7 @@ function renderBrainMessages() {
     if (idx === editingIdx) {
       return '<div class="message ' + (isUser ? 'user' : 'ai') + '"><div class="message-avatar">' + (isUser ? '👤' : '🤖') + '</div><div style="flex:1;min-width:0;"><textarea class="message-edit-input" id="editMsg_' + idx + '" rows="4">' + escHtml(m.content) + '</textarea><div class="message-edit-actions"><button class="btn-save-edit" onclick="saveBrainMessageEdit(' + idx + ')">✓ ' + (isUser ? '确认并重问AI' : '保存修改') + '</button><button class="btn-cancel-edit" onclick="cancelBrainMessageEdit()">取消</button></div></div></div>';
     }
-    return '<div class="message ' + (isUser ? 'user' : 'ai') + '"><div class="message-avatar">' + (isUser ? '👤' : '🤖') + '</div><div style="flex:1;min-width:0;">' + (isUser ? '' : '<div class="message-role">AI</div>') + '<div class="message-bubble">' + renderMarkdown(m.content) + '</div><div class="message-actions">' + (isUser ? '' : '<button onclick="regenerateBrainMessage(' + idx + ')" title="重新生成">🔄</button>') + '<button onclick="editBrainMessage(' + idx + ')" title="编辑">✏️</button><button onclick="deleteBrainMessage(' + idx + ')" title="删除">🗑️</button><button onclick="copyBrainMessage(' + idx + ')" title="复制">📋</button></div></div></div>';
+    return '<div class="message ' + (isUser ? 'user' : 'ai') + '"><div class="message-avatar">' + (isUser ? '👤' : '🤖') + '</div><div style="flex:1;min-width:0;">' + (isUser ? '' : '<div class="message-role">AI</div>') + '<div class="message-bubble">' + renderMarkdown(getDisplayText(m.content)) + '</div><div class="message-actions">' + (isUser ? '' : '<button onclick="regenerateBrainMessage(' + idx + ')" title="重新生成">🔄</button>') + '<button onclick="editBrainMessage(' + idx + ')" title="编辑">✏️</button><button onclick="deleteBrainMessage(' + idx + ')" title="删除">🗑️</button><button onclick="copyBrainMessage(' + idx + ')" title="复制">📋</button></div></div></div>';
   }).join('');
   container.scrollTop = container.scrollHeight;
 }
@@ -5661,7 +5670,7 @@ function copyBrainMessage(idx) {
   if (!conv) return;
   const msg = conv.messages[idx];
   if (!msg) return;
-  navigator.clipboard.writeText(msg.content).then(() => showToast('已复制到剪贴板', 'success'));
+  navigator.clipboard.writeText(getDisplayText(msg.content)).then(() => showToast('已复制到剪贴板', 'success'));
 }
 
 async function regenerateBrainMessage(idx) {
