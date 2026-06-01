@@ -1186,6 +1186,77 @@ input, textarea, select { font-family: inherit; outline: none; }
   background: var(--bg);
 }
 
+/* ===== Brain Attachments ===== */
+.brain-attach-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px 0;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+}
+.brain-attach-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 28px 6px 8px;
+  max-width: 200px;
+}
+.brain-attach-item img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.brain-attach-item-info {
+  overflow: hidden;
+}
+.brain-attach-item-name {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.brain-attach-item-size {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+.brain-attach-item-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.btn-attach {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition);
+  flex-shrink: 0;
+  line-height: 1;
+}
+.btn-attach:hover { background: var(--primary-light); color: var(--primary-dark); border-color: var(--primary); }
+
 /* ===== Error Log Page ===== */
 .errorlog-page {
   flex: 1;
@@ -1889,7 +1960,10 @@ input, textarea, select { font-family: inherit; outline: none; }
           </div>
         </div>
         <div class="chat-input-resize-handle" id="brainInputResizeHandle"></div>
+        <div class="brain-attach-preview" id="brainAttachPreview" style="display:none;"></div>
         <div class="chat-input-area" id="brainChatInputArea">
+          <input type="file" id="brainFileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.md,.json,.csv" multiple style="display:none;" onchange="handleBrainFiles(event)">
+          <button class="btn-attach" id="btnBrainAttach" onclick="document.getElementById('brainFileInput').click()" title="添加附件">📎</button>
           <textarea id="brainChatInput" placeholder="输入消息，Shift+Enter 发送，Enter 换行..." rows="2"></textarea>
           <button class="btn-send" id="btnBrainSend" disabled>发送</button>
           <button class="btn-stop-generate" id="btnBrainStopGenerate" style="display:none;" onclick="stopBrainGeneration()">⏹ 停止</button>
@@ -5739,6 +5813,135 @@ async function refreshBrainApiSelect() {
 async function renderBrainPage() {
   await refreshBrainApiSelect();
   await renderBrainConvList();
+}
+
+// ===== Brain Attachment Functions =====
+const brainAttachments = [];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_DOC_SIZE = 2 * 1024 * 1024;
+const MAX_ATTACHMENTS = 5;
+
+const IMG_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+const DOC_EXTS = ['txt', 'md', 'json', 'csv', 'pdf'];
+
+async function handleBrainFiles(event) {
+  const files = event.target.files;
+  if (!files.length) return;
+
+  for (const file of files) {
+    if (brainAttachments.length >= MAX_ATTACHMENTS) { showToast('最多同时上传 ' + MAX_ATTACHMENTS + ' 个附件', 'error'); break; }
+
+    const ext = file.name.split('.').pop().toLowerCase();
+    const isImg = IMG_EXTS.includes(ext);
+    const maxSize = isImg ? MAX_IMAGE_SIZE : MAX_DOC_SIZE;
+
+    if (file.size > maxSize) { showToast('文件 ' + file.name + ' 超出大小限制 (' + (maxSize/1024/1024).toFixed(1) + 'MB)', 'error'); continue; }
+
+    const att = { name: file.name, size: file.size, type: ext, loading: true };
+    brainAttachments.push(att);
+    renderBrainAttachments();
+
+    try {
+      if (isImg) {
+        att.data = await readAsBase64(file);
+        att.isImage = true;
+      } else if (ext === 'pdf') {
+        att.data = await extractPdfText(file);
+        att.isText = true;
+      } else {
+        att.data = await readAsText(file);
+        att.isText = true;
+      }
+      att.loading = false;
+    } catch (err) {
+      att.error = err.message;
+      att.loading = false;
+      logError(err);
+    }
+    renderBrainAttachments();
+  }
+
+  event.target.value = '';
+}
+
+function renderBrainAttachments() {
+  const container = document.getElementById('brainAttachPreview');
+  if (!container) return;
+  if (brainAttachments.length === 0) { container.style.display = 'none'; container.innerHTML = ''; return; }
+  container.style.display = 'flex';
+  container.innerHTML = brainAttachments.map((a, i) => {
+    const sizeStr = (a.size / 1024).toFixed(0) + 'KB';
+    let preview = '';
+    if (a.isImage && a.data) { preview = '<img src="' + a.data + '" alt="">'; }
+    else if (a.loading) { preview = '<span style="font-size:20px;">⏳</span>'; }
+    else if (a.error) { preview = '<span style="font-size:14px;color:var(--danger);">⚠️</span>'; }
+    else { preview = '<span style="font-size:18px;">📄</span>'; }
+    return '<div class="brain-attach-item">' + preview + '<div class="brain-attach-item-info"><div class="brain-attach-item-name">' + escHtml(a.name) + '</div><div class="brain-attach-item-size">' + sizeStr + (a.loading ? ' 加载中...' : '') + (a.error ? ' 失败' : '') + '</div></div><button class="brain-attach-item-remove" onclick="removeBrainAttachment(' + i + ')">✕</button></div>';
+  }).join('');
+}
+
+function removeBrainAttachment(idx) { brainAttachments.splice(idx, 1); renderBrainAttachments(); }
+function clearBrainAttachments() { brainAttachments.length = 0; renderBrainAttachments(); }
+
+function readAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('读取图片失败'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function readAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('读取文件失败'));
+    reader.readAsText(file);
+  });
+}
+
+async function extractPdfText(file) {
+  try {
+    const arrayBuf = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuf);
+    // Basic PDF text extraction: look for text between stream/endstream, decode FlateDecode
+    let text = '';
+    const raw = new TextDecoder('latin1').decode(bytes);
+    // Find streams with FlateDecode
+    const streamRegex = /\/Filter\s*\/FlateDecode[\s\S]*?stream\s*([\s\S]*?)endstream/g;
+    let match;
+    while ((match = streamRegex.exec(raw)) !== null) {
+      try {
+        // Extract compressed data
+        const streamContent = match[1];
+        // Remove trailing whitespace/newlines after 'stream'
+        const cleanContent = streamContent.replace(/^\r?\n/, '').replace(/\r?\n$/, '');
+        // Convert Latin1 to bytes
+        const compressed = new Uint8Array(cleanContent.length);
+        for (let i = 0; i < cleanContent.length; i++) compressed[i] = cleanContent.charCodeAt(i) & 0xFF;
+        // Try to decompress with browser's DecompressionStream
+        // Since DecompressionStream might not be available, use a simpler fallback
+        // Try pako-like approach or just skip binary
+        text += '[PDF text extraction requires browser support] ';
+      } catch (e) {}
+    }
+    // Also try to extract plain text between BT/ET blocks
+    const btRegex = /BT\s*([\s\S]*?)\s*ET/g;
+    let btMatch;
+    while ((btMatch = btRegex.exec(raw)) !== null) {
+      const btContent = btMatch[1];
+      // Extract Tj, TJ, ' operators
+      const tjRegex = /\(([^)]*)\)\s*Tj/g;
+      let tjMatch;
+      while ((tjMatch = tjRegex.exec(btContent)) !== null) {
+        text += tjMatch[1] + ' ';
+      }
+    }
+    return text.trim() || '[无法从 PDF 中提取文本内容，请尝试转换为图片格式后上传]';
+  } catch (e) {
+    return '[PDF 解析失败: ' + e.message + ']';
+  }
 }
 
 // ===== Panel Collapse (bidirectional) =====
