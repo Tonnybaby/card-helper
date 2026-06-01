@@ -5721,8 +5721,9 @@ function appendBrainMessage(role, content, hidden) {
 async function sendBrainMessage() {
   if (state.brainGenerating) return;
   const input = document.getElementById('brainChatInput');
-  const content = input.value.trim();
-  if (!content) return;
+  let userText = input.value.trim();
+  const hasAttachments = brainAttachments.length > 0;
+  if (!userText && !hasAttachments) return;
   const conv = state.brainConversation;
   if (!conv) { showToast('请先新建智脑对话', 'error'); return; }
   const apiConfigId = document.getElementById('brainApiSelect').value;
@@ -5730,11 +5731,37 @@ async function sendBrainMessage() {
   conv.apiConfigId = Number(apiConfigId);
   await dbPut('brainConversations', conv);
   state.brainGeneratingForId = conv.id;
+
+  let msgContent = userText || '';
+  const hasImages = brainAttachments.some(a => a.isImage && a.data);
+  const hasTexts = brainAttachments.some(a => a.isText && a.data);
+
+  if (hasImages) {
+    if (!msgContent) msgContent = '请描述这张图片';
+    const parts = [{ type: 'text', text: msgContent }];
+    if (hasTexts) {
+      let textConcat = '';
+      for (const a of brainAttachments) {
+        if (a.isText && a.data) textConcat += '\n\n[附件：' + a.name + ']\n' + a.data;
+      }
+      parts[0].text += textConcat;
+    }
+    for (const a of brainAttachments) {
+      if (a.isImage && a.data) parts.push({ type: 'image_url', image_url: { url: a.data } });
+    }
+    msgContent = parts;
+  } else if (hasTexts) {
+    for (const a of brainAttachments) {
+      if (a.isText && a.data) msgContent += '\n\n[附件：' + a.name + ']\n' + a.data;
+    }
+  }
+
   input.value = '';
   document.getElementById('btnBrainSend').disabled = true;
   document.getElementById('btnBrainStopGenerate').style.display = 'inline-block';
   state.brainGenerating = true;
-  appendBrainMessage('user', content);
+  appendBrainMessage('user', msgContent);
+  clearBrainAttachments();
   const msgContainer = document.getElementById('brainMessagesContainer');
   const typingEl = document.createElement('div');
   typingEl.className = 'message ai';
@@ -5744,6 +5771,7 @@ async function sendBrainMessage() {
   msgContainer.scrollTop = msgContainer.scrollHeight;
   abortController = new AbortController();
   try {
+    console.log('[智脑发送] messages:', JSON.stringify(conv.messages.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content.substring(0, 200) : '[vision array]' }))));
     const response = await callBrainAI(apiConfigId, conv.messages, abortController.signal);
     const ti = document.getElementById('brainTypingIndicator');
     if (ti) ti.remove();
@@ -5765,6 +5793,7 @@ async function callBrainAI(apiConfigId, messages, signal) {
   const apiConfig = await dbGet('apiConfigs', Number(apiConfigId));
   if (!apiConfig) throw new Error('未找到 API 配置');
   const chatMessages = messages.filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({ role: m.role, content: m.content }));
+  console.log('[智脑 API] 实际发送 messages:', JSON.stringify(chatMessages.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content.substring(0, 200) : '[vision array]' }))));
   if (apiConfig.provider === 'anthropic') {
     return callAnthropicBrain(apiConfig, chatMessages, signal);
   } else {
@@ -5776,7 +5805,9 @@ async function callOpenAIBrain(config, messages, signal) {
   const url = config.endpoint + '/chat/completions';
   const headers = { 'Content-Type': 'application/json' };
   if (config.apiKey) headers['Authorization'] = 'Bearer ' + config.apiKey;
-  const response = await fetch(url, { method: 'POST', headers, signal, body: JSON.stringify({ model: config.model, messages, temperature: 0.8, max_tokens: 32000 }) });
+  const body = JSON.stringify({ model: config.model, messages, temperature: 0.8, max_tokens: 32000 });
+  console.log('[智脑 OpenAI] request body size:', body.length, 'chars');
+  const response = await fetch(url, { method: 'POST', headers, signal, body });
   if (!response.ok) { const errText = await response.text(); throw new Error('API 错误 (' + response.status + '): ' + errText); }
   const data = await response.json();
   return data.choices[0].message.content;
@@ -5786,6 +5817,7 @@ async function callAnthropicBrain(config, messages, signal) {
   const url = config.endpoint + '/messages';
   const headers = { 'Content-Type': 'application/json', 'x-api-key': config.apiKey, 'anthropic-version': '2023-06-01' };
   const body = { model: config.model, max_tokens: 32000, messages };
+  console.log('[智脑 Anthropic] request body size:', JSON.stringify(body).length, 'chars');
   const response = await fetch(url, { method: 'POST', headers, signal, body: JSON.stringify(body) });
   if (!response.ok) { const errText = await response.text(); throw new Error('Anthropic API 错误 (' + response.status + '): ' + errText); }
   const data = await response.json();
