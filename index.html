@@ -1274,11 +1274,6 @@ input, textarea, select { font-family: inherit; outline: none; }
   position: relative;
   min-height: calc(100vh - 120px);
 }
-.errorlog-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
 .btn-clear-logs {
   background: transparent;
   border: 1px solid var(--danger);
@@ -1967,11 +1962,6 @@ input, textarea, select { font-family: inherit; outline: none; }
     </div>
   </div>
 
-</div>
-
-
-</div>
-
   </div><!-- /body-layout -->
 
 <!-- Modals -->
@@ -2622,8 +2612,6 @@ ta有没有什么连自己都不太愿意承认的那一面？"
 用户："剩下的你来决定吧"
 → "好好好！柚乃接过来！按你的方向帮你补完，看完觉得哪里不对再说(≧∇≦)ﾉ"`;
 
-;
-
 const GUODEGANG_PROMPT = `===【人格身份】===
  
 你叫「郭德纲」，是一位冷静、毒舌、极度专业的 SillyTavern 角色卡创建助手。
@@ -3008,8 +2996,6 @@ ta身上有没有连自己都不承认的那一面？"
  
 用户："剩下的你来决定吧"
 → "行。这才叫信任。我来替您收尾，您看完有意见再说。"`;
-
-;
 
 const AIWRITER_PROMPT = `===【人格身份】===
  
@@ -3432,8 +3418,6 @@ AI写卡助手根据这条词条的使用频率自己判断，说一句理由。
  
 用户："剩下的你来决定吧"
 → "好，那我来。我根据你前面说的帮你补完，你看完觉得哪里不对再跟我说。"`;
-
-;
 
 // Fallback for when no persona matches (shouldn't happen)
 const DEFAULT_PERSONA_PROMPT = `你是一个 SillyTavern 角色卡创建助手。你的工作方式是：以聊天形式，一步步引导用户创建角色卡。
@@ -4147,100 +4131,6 @@ async function callAnthropicWithAbort(config, messages, signal) {
   return data.content[0].text;
 }
 
-async function callAI(apiConfigId, personaId, messages) {
-  const apiConfig = await dbGet('apiConfigs', Number(apiConfigId));
-  const persona = await dbGet('aiPersonas', Number(personaId));
-
-  if (!apiConfig) throw new Error('未找到 API 配置');
-  if (!persona) throw new Error('未找到 AI 人设');
-
-  const systemPrompt = persona.systemPrompt || DEFAULT_PERSONA_PROMPT;
-
-  // Filter: keep only user and assistant messages (skip internal system messages)
-  const chatMessages = messages
-    .filter(m => m.role === 'user' || m.role === 'assistant')
-    .map(m => ({ role: m.role, content: m.content }));
-
-  const allMessages = [
-    { role: 'system', content: systemPrompt },
-    ...chatMessages
-  ];
-
-  if (apiConfig.provider === 'anthropic') {
-    return callAnthropic(apiConfig, allMessages);
-  } else {
-    return callOpenAI(apiConfig, allMessages);
-  }
-}
-
-async function callOpenAI(config, messages) {
-  const url = config.endpoint + '/chat/completions';
-  const headers = {
-    'Content-Type': 'application/json'
-  };
-  if (config.apiKey) {
-    headers['Authorization'] = `Bearer ${config.apiKey}`;
-  }
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model: config.model,
-      messages: messages,
-      temperature: 0.8,
-      max_tokens: 32000
-    })
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`API 错误 (${response.status}): ${errText}`);
-  }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
-}
-
-async function callAnthropic(config, messages) {
-  const url = config.endpoint + '/messages';
-  const headers = {
-    'Content-Type': 'application/json',
-    'x-api-key': config.apiKey,
-    'anthropic-version': '2023-06-01'
-  };
-
-  // Separate system message from others
-  const systemMsg = messages.find(m => m.role === 'system');
-  const chatMessages = messages.filter(m => m.role !== 'system').map(m => ({
-    role: m.role,
-    content: m.content
-  }));
-
-  const body = {
-    model: config.model,
-    max_tokens: 32000,
-    messages: chatMessages
-  };
-  if (systemMsg) {
-    body.system = systemMsg.content;
-  }
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body)
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Anthropic API 错误 (${response.status}): ${errText}`);
-  }
-
-  const data = await response.json();
-  return data.content[0].text;
-}
-
 // ============================================================
 // ===== Card Data Parsing =====
 // ============================================================
@@ -4505,16 +4395,6 @@ async function renderConvList() {
       </div>
     `).join('');
   }
-}
-
-function formatTime(ts) {
-  const d = new Date(ts);
-  const now = new Date();
-  const diff = now - d;
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
-  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
-  return `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
 }
 
 function escHtml(str) {
@@ -6383,10 +6263,8 @@ async function init() {
     logError(event.reason || new Error('Unhandled Promise rejection'));
   });
 
-  // Show update banner (once per session)
-  localStorage.setItem('bannerDismissed_v4', '1'); if (false) {
-    document.getElementById('updateBanner').classList.remove('hidden');
-  }
+  // Update banner always hidden (v2.1+)
+  localStorage.setItem('bannerDismissed_v4', '1');
 
   // Restore panel collapse state
   restoreCollapseState();
