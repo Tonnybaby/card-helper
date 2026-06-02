@@ -1390,6 +1390,20 @@ input, textarea, select { font-family: inherit; outline: none; }
 .btn-fetch-models:hover { background: var(--primary); color: #fff; }
 .btn-fetch-models:disabled { opacity: 0.5; cursor: not-allowed; background: #eee; border-color: #ccc; color: #999; }
 
+/* Local model shortcut buttons */
+.btn-local-model {
+  background: var(--primary-soft);
+  border: 1px solid var(--border);
+  color: var(--primary-dark);
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.btn-local-model:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+
 /* Loading spinner */
 .spinner {
   display: inline-block;
@@ -2067,6 +2081,15 @@ body::before {
     <div class="modal-field">
       <label>API Key (可选)</label>
       <input type="password" id="apiKey" placeholder="sk-...">
+    </div>
+    <div class="modal-field">
+      <label>API 地址</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn-local-model" onclick="fillLocalModel('ollama')" title="填入 Ollama 本地地址">🦙 Ollama</button>
+        <button class="btn-local-model" onclick="fillLocalModel('lmstudio')" title="填入 LM Studio 本地地址">💻 LM Studio</button>
+        <button class="btn-local-model" onclick="fillLocalModel('jan')" title="填入 Jan 本地地址">🧠 Jan</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">💡 支持本地模型，填入 Ollama / LM Studio 等工具的本地地址即可</div>
     </div>
     <div class="modal-field">
       <label>模型名称</label>
@@ -3540,6 +3563,21 @@ const state = {
 };
 
 // ============================================================
+// ===== API Request Helpers =====
+// ============================================================
+// 检测是否为本地地址（localhost / 127.0.0.1 / IPv6）
+// 本地地址不需要 API Key，避免发送空的 Authorization 头
+function isLocalhost(endpoint) {
+  if (!endpoint) return false;
+  try {
+    const hostname = new URL(endpoint).hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+  } catch (e) {
+    return false;
+  }
+}
+
+// ============================================================
 // ===== Toast =====
 // ============================================================
 function dismissUpdateBanner() {
@@ -3839,6 +3877,20 @@ function onModelSelect() {
   }
 }
 
+function fillLocalModel(tool) {
+  const configs = {
+    ollama: { endpoint: 'http://localhost:11434/v1', key: '', provider: 'openai' },
+    lmstudio: { endpoint: 'http://localhost:1234/v1', key: '', provider: 'openai' },
+    jan: { endpoint: 'http://localhost:1337/v1', key: '', provider: 'openai' }
+  };
+  const c = configs[tool];
+  if (!c) return;
+  document.getElementById('apiEndpoint').value = c.endpoint;
+  document.getElementById('apiKey').value = c.key;
+  document.getElementById('apiProvider').value = c.provider;
+  showToast(c.endpoint + ' 已填入，请填写配置名称并拉取模型', 'info');
+}
+
 async function fetchModels() {
   const endpoint = document.getElementById('apiEndpoint').value.trim().replace(/\/+$/, '');
   const apiKey = document.getElementById('apiKey').value.trim();
@@ -3863,7 +3915,7 @@ async function fetchModels() {
         headers['x-api-key'] = apiKey;
         headers['anthropic-version'] = '2023-06-01';
       } else {
-        headers['Authorization'] = `Bearer ${apiKey}`;
+        headers['Authorization'] = 'Bearer ' + apiKey;
       }
     }
 
@@ -4210,7 +4262,8 @@ async function callOpenAIWithAbort(config, messages, signal) {
 
 async function callAnthropicWithAbort(config, messages, signal) {
   const url = config.endpoint + '/messages';
-  const headers = { 'Content-Type': 'application/json', 'x-api-key': config.apiKey, 'anthropic-version': '2023-06-01' };
+  const headers = { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' };
+  if (config.apiKey) headers['x-api-key'] = config.apiKey;
   const systemMsg = messages.find(m => m.role === 'system');
   const chatMessages = messages.filter(m => m.role !== 'system').map(m => ({ role: m.role, content: m.content }));
   const body = { model: config.model, max_tokens: 32000, messages: chatMessages };
@@ -5760,7 +5813,8 @@ async function callOpenAIBrain(config, messages, signal, systemPrompt) {
 
 async function callAnthropicBrain(config, messages, signal, systemPrompt) {
   const url = config.endpoint + '/messages';
-  const headers = { 'Content-Type': 'application/json', 'x-api-key': config.apiKey, 'anthropic-version': '2023-06-01' };
+  const headers = { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' };
+  if (config.apiKey) headers['x-api-key'] = config.apiKey;
   const body = { model: config.model, max_tokens: 32000, messages };
   if (systemPrompt) body.system = systemPrompt;
   console.log('[智脑 Anthropic] request body size:', JSON.stringify(body).length, 'chars');
